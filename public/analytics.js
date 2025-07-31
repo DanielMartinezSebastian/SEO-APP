@@ -40,7 +40,44 @@ class AnalyticsApp {
             keywordFilter: 'all',
             topLimit: 20
         };
-        this.init();
+        
+        // Esperar a que el tema esté inicializado
+        this.waitForTheme().then(() => {
+            this.init();
+        });
+    }
+
+    async waitForTheme() {
+        // Esperar a que el ThemeManager esté disponible
+        while (!window.themeManager) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+        
+        // Configurar Chart.js para el tema actual
+        this.configureChartTheme();
+    }
+
+    configureChartTheme() {
+        const isDark = window.themeManager.isDarkMode();
+        
+        // Configurar colores por defecto de Chart.js
+        Chart.defaults.color = isDark ? '#ffffff' : '#666666';
+        Chart.defaults.borderColor = isDark ? '#404040' : '#dee2e6';
+        Chart.defaults.backgroundColor = isDark ? '#1e1e1e' : '#ffffff';
+        
+        // Configurar colores de grid
+        if (Chart.defaults.scales) {
+            Chart.defaults.scales.category = Chart.defaults.scales.category || {};
+            Chart.defaults.scales.linear = Chart.defaults.scales.linear || {};
+            
+            Chart.defaults.scales.category.grid = {
+                color: isDark ? '#404040' : '#e0e0e0'
+            };
+            
+            Chart.defaults.scales.linear.grid = {
+                color: isDark ? '#404040' : '#e0e0e0'
+            };
+        }
     }
 
     init() {
@@ -330,6 +367,7 @@ class AnalyticsApp {
     getChartConfig(chartData) {
         const chartType = this.currentConfig.chartType;
         const metric = this.currentConfig.sortMetric;
+        const isDark = window.themeManager.isDarkMode();
 
         const config = {
             type: chartType,
@@ -351,6 +389,7 @@ class AnalyticsApp {
                         display: ['pie', 'doughnut'].includes(chartType),
                         position: 'right',
                         labels: {
+                            color: isDark ? '#ffffff' : '#666666',
                             generateLabels: (chart) => {
                                 if (['pie', 'doughnut'].includes(chartType)) {
                                     return this.generateCustomLegend(chart);
@@ -360,6 +399,11 @@ class AnalyticsApp {
                         }
                     },
                     tooltip: {
+                        backgroundColor: isDark ? 'rgba(40, 40, 40, 0.95)' : 'rgba(0, 0, 0, 0.8)',
+                        titleColor: isDark ? '#ffffff' : '#ffffff',
+                        bodyColor: isDark ? '#ffffff' : '#ffffff',
+                        borderColor: isDark ? '#666666' : '#cccccc',
+                        borderWidth: 1,
                         callbacks: {
                             label: (context) => {
                                 const kw = this.filteredKeywords[context.dataIndex];
@@ -393,7 +437,11 @@ class AnalyticsApp {
                 scales: ['pie', 'doughnut', 'radar'].includes(chartType) ? {} : {
                     y: {
                         beginAtZero: true,
+                        grid: {
+                            color: isDark ? '#404040' : '#e0e0e0'
+                        },
                         ticks: {
+                            color: isDark ? '#ffffff' : '#666666',
                             callback: (value) => {
                                 switch (metric) {
                                     case 'search_volume':
@@ -409,7 +457,11 @@ class AnalyticsApp {
                         }
                     },
                     x: {
+                        grid: {
+                            color: isDark ? '#404040' : '#e0e0e0'
+                        },
                         ticks: {
+                            color: isDark ? '#ffffff' : '#666666',
                             maxRotation: 45,
                             minRotation: 45
                         }
