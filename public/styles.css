@@ -128,7 +128,7 @@ button:hover {
 }
 
 .btn-view {
-    background: #28a745;
+    background: var(--btn-success-bg);
     color: white;
     padding: 8px 16px;
     font-size: 14px;
@@ -178,17 +178,30 @@ button:hover {
 }
 
 .btn-download {
-    background: #007bff;
+    background: var(--btn-info-bg);
     color: white;
     padding: 8px 16px;
     font-size: 14px;
 }
 
 .btn-delete {
-    background: #dc3545;
+    background: var(--btn-danger-bg);
     color: white;
     padding: 8px 16px;
     font-size: 14px;
+}
+
+/* Button hover states */
+.btn-view:hover {
+    background: var(--btn-success-hover);
+}
+
+.btn-download:hover {
+    background: var(--btn-info-hover);
+}
+
+.btn-delete:hover {
+    background: var(--btn-danger-hover);
 }
 
 /* Estados */
