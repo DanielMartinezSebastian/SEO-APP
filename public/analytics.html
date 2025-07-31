@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis Gráfico - SEO App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="analytics.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="analytics.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Navigation -->
+        <header class="analytics-header">
+            <div class="header-nav">
+                <button onclick="window.history.back()" class="btn-back">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </button>
+                <div class="header-actions">
+                    <button onclick="analyticsApp.exportChart()" class="btn-export">
+                        <i class="fas fa-download"></i> Exportar Gráfico
+                    </button>
+                    <button onclick="window.print()" class="btn-print">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Loading State -->
+            <div id="loadingState" class="loading-container">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>Cargando datos para análisis...</p>
+                </div>
+            </div>
+
+            <!-- Report Title -->
+            <div id="analyticsTitle" class="analytics-title hidden">
+                <h1><i class="fas fa-chart-bar"></i> Análisis Gráfico SEO</h1>
+                <div id="reportMeta" class="report-meta"></div>
+            </div>
+        </header>
+
+        <!-- Analytics Content -->
+        <main id="analyticsContent" class="analytics-content hidden">
+            
+            <!-- Controls Panel -->
+            <section class="controls-panel">
+                <div class="control-group">
+                    <label for="chartType">Tipo de Gráfico:</label>
+                    <select id="chartType" onchange="analyticsApp.changeChartType()">
+                        <option value="bar">Barras</option>
+                        <option value="pie">Circular</option>
+                        <option value="doughnut">Dona</option>
+                        <option value="line">Líneas</option>
+                        <option value="radar">Radar</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="sortMetric">Ordenar por:</label>
+                    <select id="sortMetric" onchange="analyticsApp.changeSortMetric()">
+                        <option value="search_volume">Volumen de Búsqueda</option>
+                        <option value="cpc">CPC (Coste por Clic)</option>
+                        <option value="competition">Competencia</option>
+                        <option value="similar_count">Cantidad de Similares</option>
+                        <option value="suggestions_count">Cantidad de Sugerencias</option>
+                        <option value="keyword_length">Longitud de Keyword</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="sortOrder">Orden:</label>
+                    <select id="sortOrder" onchange="analyticsApp.changeSortOrder()">
+                        <option value="desc">Descendente</option>
+                        <option value="asc">Ascendente</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="keywordFilter">Filtrar Keywords:</label>
+                    <select id="keywordFilter" onchange="analyticsApp.changeKeywordFilter()">
+                        <option value="all">Todas las Keywords</option>
+                        <option value="main">Solo Keywords Principales</option>
+                        <option value="similar">Solo Keywords Similares</option>
+                        <option value="suggestions">Solo Sugerencias</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="topLimit">Mostrar Top:</label>
+                    <select id="topLimit" onchange="analyticsApp.changeTopLimit()">
+                        <option value="10">10</option>
+                        <option value="20" selected>20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="all">Todas</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Statistics Summary -->
+            <section class="stats-summary">
+                <div class="stat-card">
+                    <div id="totalKeywords" class="stat-value">0</div>
+                    <div class="stat-label">Total Keywords</div>
+                </div>
+                <div class="stat-card">
+                    <div id="avgVolume" class="stat-value">0</div>
+                    <div class="stat-label">Volumen Promedio</div>
+                </div>
+                <div class="stat-card">
+                    <div id="avgCPC" class="stat-value">€0.00</div>
+                    <div class="stat-label">CPC Promedio</div>
+                </div>
+                <div class="stat-card">
+                    <div id="avgCompetition" class="stat-value">0%</div>
+                    <div class="stat-label">Competencia Promedio</div>
+                </div>
+                <div class="stat-card">
+                    <div id="totalSuggestions" class="stat-value">0</div>
+                    <div class="stat-label">Total Sugerencias</div>
+                </div>
+                <div class="stat-card">
+                    <div id="totalSimilar" class="stat-value">0</div>
+                    <div class="stat-label">Keywords Similares</div>
+                </div>
+            </section>
+
+            <!-- Chart Container -->
+            <section class="chart-section">
+                <div class="chart-header">
+                    <h2 id="chartTitle">Análisis por Volumen de Búsqueda</h2>
+                    <div class="chart-info">
+                        <span id="chartInfo">Mostrando top 20 keywords ordenadas por volumen descendente</span>
+                    </div>
+                </div>
+                
+                <!-- Color Legend -->
+                <div class="color-legend" id="colorLegend">
+                    <!-- Populated by JavaScript -->
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="analyticsChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Detailed Table -->
+            <section class="table-section">
+                <div class="table-header">
+                    <h2>Datos Detallados</h2>
+                    <div class="table-actions">
+                        <button onclick="analyticsApp.exportTableCSV()" class="btn-export-table">
+                            <i class="fas fa-table"></i> Exportar CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="analyticsTable" class="analytics-table">
+                        <thead>
+                            <tr>
+                                <th onclick="analyticsApp.sortTable('keyword')">
+                                    Keyword <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="analyticsApp.sortTable('type')">
+                                    Tipo <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="analyticsApp.sortTable('search_volume')">
+                                    Volumen <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="analyticsApp.sortTable('cpc')">
+                                    CPC <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="analyticsApp.sortTable('competition')">
+                                    Competencia <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="analyticsApp.sortTable('similar_count')">
+                                    Similares <i class="fas fa-sort"></i>
+                                </th>
+                                <th onclick="analyticsApp.sortTable('suggestions_count')">
+                                    Sugerencias <i class="fas fa-sort"></i>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="analyticsTableBody">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Distribution Charts -->
+            <section class="distribution-section">
+                <h2>Análisis de Distribución</h2>
+                <div class="distribution-grid">
+                    <div class="distribution-card">
+                        <h3>Distribución por Tipo</h3>
+                        <canvas id="typeDistributionChart"></canvas>
+                    </div>
+                    <div class="distribution-card">
+                        <h3>Distribución de Competencia</h3>
+                        <canvas id="competitionDistributionChart"></canvas>
+                    </div>
+                    <div class="distribution-card">
+                        <h3>Distribución de CPC</h3>
+                        <canvas id="cpcDistributionChart"></canvas>
+                    </div>
+                    <div class="distribution-card">
+                        <h3>Correlación Volumen vs CPC</h3>
+                        <canvas id="correlationChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Insights Section -->
+            <section class="insights-section">
+                <h2>Insights Automáticos</h2>
+                <div id="insightsContainer" class="insights-container">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+</body>
+</html>

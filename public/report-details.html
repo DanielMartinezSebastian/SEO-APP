@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalles del Reporte - SEO App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="report-details.css">
+    <script defer src="report-details.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Navigation -->
+        <header class="report-header">
+            <div class="header-nav">
+                <button onclick="window.history.back()" class="btn-back">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </button>
+                <div class="header-actions">
+                    <button onclick="reportDetailsApp.viewAnalytics()" oncontextmenu="reportDetailsApp.openInNewTab('analytics.html?filename=' + encodeURIComponent(reportDetailsApp.reportFilename), event)" class="btn-analytics">
+                        <i class="fas fa-chart-bar"></i> Análisis Gráfico
+                    </button>
+                    <button onclick="window.print()" class="btn-print">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                    <button onclick="reportDetailsApp.downloadJSON()" class="btn-download">
+                        <i class="fas fa-download"></i> Descargar JSON
+                    </button>
+                    <button onclick="reportDetailsApp.downloadCSV()" class="btn-download">
+                        <i class="fas fa-table"></i> Descargar CSV
+                    </button>
+                </div>
+            </div>
+            <div class="report-title-section" id="reportTitleSection">
+                <!-- Se llenará dinámicamente -->
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-container">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Cargando detalles del reporte...</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main id="reportContent" class="report-content hidden">
+            <!-- Executive Summary -->
+            <section class="executive-summary">
+                <h2><i class="fas fa-chart-line"></i> Resumen Ejecutivo</h2>
+                <div id="executiveSummary" class="summary-grid">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+            </section>
+
+            <!-- Keywords Analysis -->
+            <section class="keywords-section">
+                <h2><i class="fas fa-key"></i> Análisis Detallado de Keywords</h2>
+                <div id="keywordsAnalysis" class="keywords-container">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+            </section>
+
+            <!-- Domain Analysis -->
+            <section class="domains-section">
+                <h2><i class="fas fa-globe"></i> Análisis de Dominios</h2>
+                <div id="domainsAnalysis" class="domains-container">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+            </section>
+
+            <!-- URL Analysis -->
+            <section class="urls-section">
+                <h2><i class="fas fa-link"></i> Análisis de URLs</h2>
+                <div id="urlsAnalysis" class="urls-container">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+            </section>
+
+            <!-- Raw Data -->
+            <section class="raw-data-section">
+                <h2><i class="fas fa-code"></i> Datos Completos (JSON)</h2>
+                <div class="raw-data-container">
+                    <button onclick="reportDetailsApp.toggleRawData()" class="btn-toggle-raw">
+                        <i class="fas fa-eye"></i> <span id="toggleRawText">Mostrar datos completos</span>
+                    </button>
+                    <pre id="rawDataContent" class="raw-data hidden"></pre>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="report-details.js"></script>
+</body>
+</html>

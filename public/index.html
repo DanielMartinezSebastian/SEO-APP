@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO App - Analizador de Keywords</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-chart-line"></i> SEO App - Analizador de Keywords</h1>
+            <p>Genera y visualiza reportes de análisis SEO</p>
+        </header>
+
+        <main>
+            <!-- Sección para crear nuevo análisis -->
+            <section class="analysis-form">
+                <h2><i class="fas fa-plus-circle"></i> Crear Nuevo Análisis</h2>
+                <form id="analysisForm">
+                    <div class="form-group">
+                        <label for="keywords">Keywords (separadas por comas):</label>
+                        <input type="text" id="keywords" placeholder="amazon, ebay, aliexpress" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="country">País:</label>
+                            <select id="country">
+                                <option value="ES">España (ES)</option>
+                                <option value="US">Estados Unidos (US)</option>
+                                <option value="FR">Francia (FR)</option>
+                                <option value="DE">Alemania (DE)</option>
+                                <option value="IT">Italia (IT)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="language">Idioma:</label>
+                            <select id="language">
+                                <option value="es">Español</option>
+                                <option value="en">Inglés</option>
+                                <option value="fr">Francés</option>
+                                <option value="de">Alemán</option>
+                                <option value="it">Italiano</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" id="analyzeBtn">
+                        <i class="fas fa-search"></i> Analizar Keywords
+                    </button>
+                </form>
+                <div id="analysisStatus" class="status hidden"></div>
+            </section>
+
+            <!-- Sección de reportes -->
+            <section class="reports-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-file-alt"></i> Reportes Disponibles</h2>
+                    <button id="refreshBtn" class="btn-secondary">
+                        <i class="fas fa-sync-alt"></i> Actualizar
+                    </button>
+                </div>
+                <div id="reportsContainer">
+                    <div class="loading">
+                        <i class="fas fa-spinner fa-spin"></i> Cargando reportes...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Modal para ver detalles del reporte -->
+            <div id="reportModal" class="modal hidden">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 id="modalTitle">Detalles del Reporte</h3>
+                        <button class="close-btn" id="closeModal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="reportDetails"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
