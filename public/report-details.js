@@ -455,7 +455,14 @@ class ReportDetailsApp {
     }
 
     renderRawData() {
-        document.getElementById('rawDataContent').textContent = JSON.stringify(this.reportData, null, 2);
+        const jsonString = JSON.stringify(this.reportData, null, 2);
+        const codeElement = document.querySelector('#rawDataContent code');
+        codeElement.textContent = jsonString;
+        
+        // Apply syntax highlighting with Prism.js
+        if (window.Prism) {
+            Prism.highlightElement(codeElement);
+        }
     }
 
     toggleKeywordDetail(index) {
@@ -481,6 +488,60 @@ class ReportDetailsApp {
         } else {
             rawData.classList.add('hidden');
             toggleText.textContent = 'Mostrar datos completos';
+        }
+    }
+
+    async copyToClipboard() {
+        try {
+            const jsonString = JSON.stringify(this.reportData, null, 2);
+            await navigator.clipboard.writeText(jsonString);
+            
+            // Show feedback to user
+            const button = document.querySelector('.btn-copy-json');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check"></i> ¡Copiado!';
+            button.style.background = '#28a745';
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.style.background = '';
+            }, 2000);
+            
+        } catch (err) {
+            console.error('Error al copiar al portapapeles:', err);
+            // Fallback for older browsers
+            this.fallbackCopyToClipboard();
+        }
+    }
+
+    fallbackCopyToClipboard() {
+        try {
+            const jsonString = JSON.stringify(this.reportData, null, 2);
+            const textArea = document.createElement('textarea');
+            textArea.value = jsonString;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-999999px';
+            textArea.style.top = '-999999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            document.execCommand('copy');
+            textArea.remove();
+            
+            // Show feedback
+            const button = document.querySelector('.btn-copy-json');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-check"></i> ¡Copiado!';
+            button.style.background = '#28a745';
+            
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.style.background = '';
+            }, 2000);
+            
+        } catch (err) {
+            console.error('Error en el fallback de copia:', err);
+            alert('No se pudo copiar el contenido. Por favor, copia manualmente.');
         }
     }
 

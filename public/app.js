@@ -69,7 +69,7 @@ class SEOApp {
     renderReports(reports) {
         const container = document.getElementById('reportsContainer');
         const reportsHTML = reports.map(report => `
-            <div class="report-card" onclick="app.viewReport('${report.filename}')" oncontextmenu="app.openInNewTab('report-details.html?filename=${encodeURIComponent(report.filename)}', event)" style="cursor: pointer;">
+            <div class="report-card" onclick="app.viewReport('${report.filename}')" oncontextmenu="app.viewReportInNewTab('${report.filename}'); event.preventDefault(); return false;" style="cursor: pointer;">
                 <div class="report-header">
                     <div>
                         <div class="report-title">${this.extractKeywordsFromFilename(report.filename)}</div>
@@ -82,7 +82,7 @@ class SEOApp {
                     </div>
                 </div>
                 <div class="report-actions" onclick="event.stopPropagation();">
-                    <button class="btn-view" onclick="app.viewReport('${report.filename}')" oncontextmenu="app.openInNewTab('report-details.html?filename=${encodeURIComponent(report.filename)}', event)">
+                    <button class="btn-view" onclick="app.viewReportPage('${report.filename}')" oncontextmenu="app.viewReportInNewTab('${report.filename}'); event.preventDefault(); return false;">
                         <i class="fas fa-eye"></i> Ver Detalles
                     </button>
                     <button class="btn-analytics" onclick="app.viewAnalytics('${report.filename}')" oncontextmenu="app.openInNewTab('analytics.html?filename=${encodeURIComponent(report.filename)}', event)">
@@ -210,8 +210,40 @@ class SEOApp {
     }
 
     async viewReport(filename) {
+        try {
+            // Mostrar modal y cargar datos
+            const modal = document.getElementById('reportModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const reportDetails = document.getElementById('reportDetails');
+            
+            // Mostrar el modal
+            modal.classList.remove('hidden');
+            modalTitle.textContent = `Reporte: ${filename}`;
+            reportDetails.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Cargando datos del reporte...</div>';
+            
+            // Cargar datos del reporte
+            const response = await fetch(`/api/seo/report/${filename}`);
+            if (response.ok) {
+                const result = await response.json();
+                this.renderReportDetails(result.data);
+            } else {
+                reportDetails.innerHTML = '<p class="text-error">Error al cargar el reporte</p>';
+            }
+        } catch (error) {
+            console.error('Error loading report:', error);
+            const reportDetails = document.getElementById('reportDetails');
+            reportDetails.innerHTML = '<p class="text-error">Error de conexión</p>';
+        }
+    }
+
+    async viewReportPage(filename) {
         // Redirigir a la página de detalles en la misma pestaña
         window.location.href = `report-details.html?filename=${encodeURIComponent(filename)}`;
+    }
+
+    async viewReportInNewTab(filename) {
+        // Redirigir a la página de detalles en nueva pestaña
+        window.open(`report-details.html?filename=${encodeURIComponent(filename)}`, '_blank');
     }
 
     async viewAnalytics(filename) {

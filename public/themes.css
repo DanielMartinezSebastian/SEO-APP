@@ -15,8 +15,8 @@
   --shadow-heavy: rgba(0, 0, 0, 0.25);
   
   /* Button Colors */
-  --btn-primary-bg: #667eea;
-  --btn-primary-hover: #5a6fd8;
+  --btn-primary-bg: #7c4dff;
+  --btn-primary-hover: #651fff;
   --btn-success-bg: #28a745;
   --btn-success-hover: #218838;
   --btn-info-bg: #007bff;
@@ -25,19 +25,22 @@
   --btn-warning-hover: #e0a800;
   --btn-danger-bg: #dc3545;
   --btn-danger-hover: #c82333;
+  --btn-secondary-bg: #6c757d;
+  --btn-secondary-hover: #5a6268;
   
   /* Card Colors */
   --card-bg: #ffffff;
+  --card-bg-dark: #f8f9fa;
   --card-border: #e1e5e9;
-  --card-hover-shadow: rgba(102, 126, 234, 0.15);
+  --card-hover-shadow: rgba(124, 77, 255, 0.15);
   
   /* Form Colors */
   --input-bg: #ffffff;
   --input-border: #ced4da;
-  --input-focus: #667eea;
+  --input-focus: #7c4dff;
   
   /* Header Colors */
-  --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --header-bg: linear-gradient(135deg, #7c4dff 0%, #9c27b0 100%);
   --header-text: #ffffff;
   
   /* Table Colors */
@@ -52,16 +55,16 @@
   --bg-secondary: #1e1e1e;
   --bg-tertiary: #2d2d2d;
   --text-primary: #ffffff;
-  --text-secondary: #b3b3b3;
+  --text-secondary: #e0e0e0;
   --text-muted: #666666;
-  --border-color: #404040;
+  --border-color: #555555;
   --shadow-light: rgba(0, 0, 0, 0.3);
   --shadow-medium: rgba(0, 0, 0, 0.4);
   --shadow-heavy: rgba(0, 0, 0, 0.6);
   
   /* Button Colors - Slightly adjusted for dark mode */
-  --btn-primary-bg: #7c8cff;
-  --btn-primary-hover: #6a7aef;
+  --btn-primary-bg: #9c4dff;
+  --btn-primary-hover: #7c4dff;
   --btn-success-bg: #34d058;
   --btn-success-hover: #28a745;
   --btn-info-bg: #1890ff;
@@ -70,31 +73,34 @@
   --btn-warning-hover: #d48806;
   --btn-danger-bg: #ff4d4f;
   --btn-danger-hover: #d9363e;
+  --btn-secondary-bg: #8c8c8c;
+  --btn-secondary-hover: #737373;
   
   /* Card Colors */
   --card-bg: #1e1e1e;
+  --card-bg-dark: #161616;
   --card-border: #404040;
-  --card-hover-shadow: rgba(124, 140, 255, 0.2);
+  --card-hover-shadow: rgba(156, 77, 255, 0.2);
   
   /* Form Colors */
   --input-bg: #2d2d2d;
   --input-border: #404040;
-  --input-focus: #7c8cff;
+  --input-focus: #9c4dff;
   
   /* Header Colors */
-  --header-bg: linear-gradient(135deg, #7c8cff 0%, #8e5ea2 100%);
+  --header-bg: linear-gradient(135deg, #9c4dff 0%, #b347d9 100%);
   --header-text: #ffffff;
   
   /* Table Colors */
   --table-header-bg: #2d2d2d;
   --table-row-hover: #2d2d2d;
-  --table-border: #404040;
+  --table-border: #555555;
 }
 
 /* Theme Toggle Button */
 .theme-toggle {
   position: fixed;
-  top: 20px;
+  bottom: 20px;
   right: 20px;
   z-index: 1000;
   background: var(--btn-primary-bg);
@@ -144,15 +150,42 @@ body {
 
 /* Headers */
 .header,
-.analytics-header,
-.report-header {
+.analytics-header {
   background: var(--header-bg) !important;
   color: var(--header-text) !important;
 }
 
+/* Header Actions Layout */
+.report-header .header-nav,
+.analytics-header .header-nav {
+  justify-content: space-between !important;
+  width: 100% !important;
+}
+
+.report-header .header-actions,
+.analytics-header .header-actions {
+  justify-content: flex-end !important;
+}
+
+.report-header .report-title-section,
+.analytics-header .analytics-title {
+  width: 100% !important;
+}
+
+.report-header .report-meta,
+.analytics-header .report-meta {
+  width: 100% !important;
+}
+
+/* Specific header background colors */
+.analytics-header {
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--card-border) !important;
+  color: var(--text-primary) !important;
+}
+
 /* Cards */
 .report-card,
-.stat-card,
 .insight-card,
 .keyword-detail-card,
 .domain-card,
@@ -162,11 +195,36 @@ body {
 .table-section,
 .controls-panel,
 .insights-section,
-.distribution-section {
+.distribution-section,
+.report-header,
+.analytics-header,
+section {
   background-color: var(--card-bg) !important;
   border-color: var(--card-border) !important;
   color: var(--text-primary) !important;
   box-shadow: 0 2px 10px var(--shadow-light) !important;
+}
+
+/* Stat cards with darker background */
+.stat-card,
+.metric-card {
+  background-color: var(--card-bg-dark) !important;
+  border-color: var(--card-border) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 2px 10px var(--shadow-light) !important;
+}
+
+.metric-value {
+  color: var(--btn-primary-bg) !important;
+}
+
+.metric-label {
+  color: var(--text-secondary) !important;
+}
+
+/* Stats summary section background */
+.stats-summary {
+  background-color: var(--card-bg-dark) !important;
 }
 
 .report-card:hover {
@@ -175,9 +233,16 @@ body {
 
 /* Text */
 .text-muted,
-.chart-info,
-.meta-item {
+.chart-info {
   color: var(--text-muted) !important;
+}
+
+.meta-item {
+  color: var(--text-secondary) !important;
+}
+
+.meta-item span {
+  color: var(--text-secondary) !important;
 }
 
 .text-secondary {
@@ -227,6 +292,73 @@ select:focus {
   background-color: var(--table-row-hover) !important;
 }
 
+/* Fix for table row hover in dark mode */
+[data-theme="dark"] .clickable-row:hover,
+[data-theme="dark"] .summary-table tr:hover,
+[data-theme="dark"] .analytics-table tbody tr:hover,
+[data-theme="dark"] .similar-table tbody tr:hover {
+  background-color: var(--table-row-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Detail rows and keyword detail containers */
+.detail-row,
+.keyword-detail-container,
+.detail-section {
+  background-color: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+.detail-section h5 {
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+.detail-item {
+  background-color: var(--bg-secondary) !important;
+}
+
+.detail-label {
+  color: var(--text-secondary) !important;
+}
+
+.detail-value {
+  color: var(--text-primary) !important;
+}
+
+/* Similar keywords table inside details */
+.similar-keywords-table {
+  background-color: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+.similar-keywords-table th {
+  background-color: var(--table-header-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--table-border) !important;
+}
+
+.similar-keywords-table td {
+  border-color: var(--table-border) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Suggestion tags */
+.suggestion-tag {
+  background-color: var(--btn-info-bg) !important;
+  color: var(--header-text) !important;
+}
+
+/* Errors list */
+.errors-list {
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--border-color) !important;
+}
+
+.error-item {
+  color: var(--text-primary) !important;
+}
+
 /* Borders */
 .chart-header,
 .table-header {
@@ -248,6 +380,19 @@ select:focus {
   background-color: var(--card-bg) !important;
   color: var(--text-primary) !important;
   border-color: var(--card-border) !important;
+}
+
+.modal-header {
+  border-color: var(--border-color) !important;
+}
+
+.modal-header h3 {
+  color: var(--text-primary) !important;
+}
+
+.modal-body {
+  background-color: var(--card-bg) !important;
+  color: var(--text-primary) !important;
 }
 
 /* Tooltips and Hover Effects */

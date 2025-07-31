@@ -346,7 +346,7 @@ class AnalyticsApp {
                         <div class="legend-type" style="background: ${colors.similar};" title="Similares (${keywordCounts.similar})"></div>
                         <div class="legend-type" style="background: ${colors.suggestion};" title="Sugerencias (${keywordCounts.suggestion})"></div>
                     </div>
-                    <small style="color: #666;">(${totalCount} total)</small>
+                    <small style="color: var(--text-secondary);">(${totalCount} total)</small>
                 </div>
             `;
         }).join('');
@@ -587,7 +587,7 @@ class AnalyticsApp {
                         <div style="width: 12px; height: 12px; border-radius: 50%; background: ${bgColor}; border: 2px solid ${this.getBorderColorByKeyword(kw)};"></div>
                         <div>
                             <strong>${kw.keyword}</strong>
-                            ${kw.parent_keyword !== kw.keyword ? `<br><small style="color: #666;">de: ${kw.parent_keyword}</small>` : ''}
+                            ${kw.parent_keyword !== kw.keyword ? `<br><small style="color: var(--text-secondary);">de: ${kw.parent_keyword}</small>` : ''}
                         </div>
                     </div>
                 </td>
