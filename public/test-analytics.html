@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Analytics Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .data { background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        pre { overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Analytics Data Processing Test</h1>
+    <div id="results"></div>
+
+    <script>
+        // Mock the analytics app functionality without Chart.js
+        class TestAnalyticsApp {
+            constructor() {
+                this.reportData = null;
+                this.allKeywords = [];
+            }
+
+            async loadReportData() {
+                try {
+                    const response = await fetch('/api/seo/report/seo_report_full_test_sample.json');
+                    const result = await response.json();
+                    this.reportData = result.data;
+                    this.processKeywordsData();
+                    return true;
+                } catch (error) {
+                    console.error('Error loading report:', error);
+                    return false;
+                }
+            }
+
+            processKeywordsData() {
+                this.allKeywords = [];
+                
+                this.reportData.forEach((item, index) => {
+                    const keywordData = Object.values(item.keywordData || {})[0] || {};
+                    
+                    // Keyword principal
+                    this.allKeywords.push({
+                        keyword: item.keyword,
+                        type: 'main',
+                        search_volume: keywordData.search_volume || 0,
+                        cpc: keywordData.cpc || 0,
+                        competition: keywordData.competition || 0,
+                        parent_keyword: item.keyword
+                    });
+
+                    // Sugerencias - FIXED VERSION (same as the actual fix)
+                    if (item.suggestions) {
+                        item.suggestions.forEach(suggestion => {
+                            // Verificar si existe data SEO para esta sugerencia
+                            const suggestionData = item.keywordData[suggestion] || {};
+                            
+                            this.allKeywords.push({
+                                keyword: suggestion,
+                                type: 'suggestion',
+                                search_volume: suggestionData.search_volume || 0,
+                                cpc: suggestionData.cpc || 0,
+                                competition: suggestionData.competition || 0,
+                                parent_keyword: item.keyword
+                            });
+                        });
+                    }
+                });
+            }
+        }
+
+        // Run the test
+        async function runTest() {
+            const resultsDiv = document.getElementById('results');
+            const app = new TestAnalyticsApp();
+            
+            resultsDiv.innerHTML = '<p>Loading data...</p>';
+            
+            const loaded = await app.loadReportData();
+            
+            if (!loaded) {
+                resultsDiv.innerHTML = '<div class="test-result error">❌ Failed to load data</div>';
+                return;
+            }
+
+            let html = '<div class="test-result success">✅ Data loaded successfully</div>';
+            
+            // Show processed data
+            html += '<div class="data"><h3>Processed Keywords:</h3><pre>' + 
+                    JSON.stringify(app.allKeywords, null, 2) + '</pre></div>';
+
+            // Test suggestions have correct data
+            const suggestions = app.allKeywords.filter(kw => kw.type === 'suggestion');
+            const suggestionsWithVolume = suggestions.filter(s => s.search_volume > 0);
+            
+            html += '<div class="test-result ' + 
+                    (suggestionsWithVolume.length === 3 ? 'success' : 'error') + '">';
+            html += (suggestionsWithVolume.length === 3 ? '✅' : '❌') + 
+                    ` Suggestions with SEO data: ${suggestionsWithVolume.length}/3</div>`;
+
+            // Test specific values
+            const suggestion1 = suggestions.find(s => s.keyword === "bienestar integral maria bueno");
+            const suggestion2 = suggestions.find(s => s.keyword === "bienestar integral mairena");
+            const suggestion3 = suggestions.find(s => s.keyword === "bienestar integral completo");
+            
+            html += '<div class="test-result ' + 
+                    (suggestion1.search_volume === 150 ? 'success' : 'error') + '">';
+            html += (suggestion1.search_volume === 150 ? '✅' : '❌') + 
+                    ` "maria bueno" search volume: ${suggestion1.search_volume} (expected: 150)</div>`;
+            
+            html += '<div class="test-result ' + 
+                    (suggestion2.cpc === 0.1 ? 'success' : 'error') + '">';
+            html += (suggestion2.cpc === 0.1 ? '✅' : '❌') + 
+                    ` "mairena" CPC: ${suggestion2.cpc} (expected: 0.1)</div>`;
+                    
+            html += '<div class="test-result ' + 
+                    (suggestion3.competition === 0.2 ? 'success' : 'error') + '">';
+            html += (suggestion3.competition === 0.2 ? '✅' : '❌') + 
+                    ` "completo" competition: ${suggestion3.competition} (expected: 0.2)</div>`;
+
+            resultsDiv.innerHTML = html;
+        }
+
+        // Run test when page loads
+        runTest();
+    </script>
+</body>
+</html>

@@ -315,14 +315,17 @@ class AnalyticsApp {
             // Sugerencias
             if (item.suggestions) {
                 item.suggestions.forEach(suggestion => {
+                    // Verificar si existe data SEO para esta sugerencia
+                    const suggestionData = item.keywordData[suggestion] || {};
+                    
                     this.allKeywords.push({
                         keyword: suggestion,
                         type: 'suggestion',
-                        search_volume: 0, // Las sugerencias no tienen datos de volumen
-                        cpc: 0,
-                        competition: 0,
-                        similar_count: 0,
-                        suggestions_count: 0,
+                        search_volume: suggestionData.search_volume || 0,
+                        cpc: suggestionData.cpc || 0,
+                        competition: suggestionData.competition || 0,
+                        similar_count: suggestionData.similar_keywords?.length || 0,
+                        suggestions_count: 0, // Las sugerencias no tienen sub-sugerencias
                         keyword_length: suggestion.length,
                         parent_keyword: item.keyword,
                         color_group: item.keyword,
