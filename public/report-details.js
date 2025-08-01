@@ -65,6 +65,9 @@ class ReportDetailsApp {
         this.renderDomainsAnalysis();
         this.renderUrlsAnalysis();
         this.renderRawData();
+        
+        // Verificar y mostrar botón de análisis de sugerencias si es necesario
+        this.checkAndShowSuggestionsButton();
     }
 
     renderHeader() {
@@ -619,6 +622,113 @@ class ReportDetailsApp {
         // Abrir en nueva pestaña
         window.open(url, '_blank');
         return false;
+    }
+
+    async analyzeSuggestions() {
+        try {
+            // Verificar si hay sugerencias sin datos SEO completos
+            const missingSuggestions = this.getMissingSuggestionsCount();
+            
+            if (missingSuggestions === 0) {
+                alert('Todas las sugerencias ya tienen datos SEO completos.');
+                return;
+            }
+
+            // Confirmar con el usuario
+            const confirmed = confirm(
+                `Se encontraron ${missingSuggestions} sugerencias sin datos SEO completos.\n\n` +
+                `¿Desea analizarlas ahora? Esto puede tomar varios minutos dependiendo de la cantidad.`
+            );
+            
+            if (!confirmed) {
+                return;
+            }
+
+            // Mostrar loading y deshabilitar botón
+            const btn = document.getElementById('analyzeSuggestionsBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analizando...';
+            btn.disabled = true;
+
+            // Realizar petición para analizar sugerencias
+            const response = await fetch(`${this.baseURL}/seo/analyze-suggestions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    filename: this.reportFilename,
+                    country: 'ES',
+                    language: 'es'
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Mostrar mensaje de éxito
+                alert(
+                    `¡Análisis completado exitosamente!\n\n` +
+                    `Se analizaron ${result.suggestionsAnalyzed} sugerencias.\n` +
+                    `Nuevos archivos generados:\n` +
+                    `- ${result.newFiles.json}\n` +
+                    `- ${result.newFiles.csv}\n\n` +
+                    `La página se recargará para mostrar los datos actualizados.`
+                );
+
+                // Redirigir al nuevo reporte
+                window.location.href = `report-details.html?filename=${encodeURIComponent(result.newFiles.json)}`;
+            } else {
+                throw new Error(result.error || 'Error desconocido');
+            }
+
+        } catch (error) {
+            console.error('Error analyzing suggestions:', error);
+            alert('Error al analizar sugerencias: ' + error.message);
+            
+            // Restaurar botón
+            const btn = document.getElementById('analyzeSuggestionsBtn');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    getMissingSuggestionsCount() {
+        let count = 0;
+        
+        if (!this.reportData || !Array.isArray(this.reportData)) {
+            return 0;
+        }
+
+        for (const report of this.reportData) {
+            if (report.suggestions && Array.isArray(report.suggestions)) {
+                for (const suggestion of report.suggestions) {
+                    // Verificar si la sugerencia NO tiene datos SEO completos
+                    if (!report.keywordData[suggestion] || 
+                        typeof report.keywordData[suggestion].search_volume !== 'number') {
+                        count++;
+                    }
+                }
+            }
+        }
+
+        return count;
+    }
+
+    checkAndShowSuggestionsButton() {
+        const btn = document.getElementById('analyzeSuggestionsBtn');
+        const missingSuggestions = this.getMissingSuggestionsCount();
+        
+        if (missingSuggestions > 0) {
+            btn.style.display = 'inline-block';
+            btn.title = `Analizar ${missingSuggestions} sugerencias sin datos SEO`;
+        } else {
+            btn.style.display = 'none';
+        }
     }
 }
 

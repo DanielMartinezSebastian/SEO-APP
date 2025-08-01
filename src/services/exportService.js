@@ -41,13 +41,13 @@ export class ExportService {
     return filepath;
   }
 
-  async exportFullReport(analyzer, prefix = 'seo_report') {
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  async exportFullReport(analyzer, customTimestamp = null) {
+    const timestamp = customTimestamp || new Date().toISOString().replace(/[:.]/g, '-').slice(0, -1);
     const results = analyzer.getResults();
     const summary = analyzer.getSummary();
     
-    const jsonPath = await this.exportToJSON(results, `${prefix}_full_${timestamp}`);
-    const csvPath = await this.exportToCSV(summary, `${prefix}_summary_${timestamp}`);
+    const jsonPath = await this.exportToJSON(results, `seo_report_full_${timestamp}`);
+    const csvPath = await this.exportToCSV(summary, `seo_report_summary_${timestamp}`);
     
     return { jsonPath, csvPath };
   }

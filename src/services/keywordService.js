@@ -83,6 +83,61 @@ export class KeywordAnalyzer {
     return this.getResults();
   }
 
+  async analyzeSuggestions(suggestions, country = 'ES', language = 'es') {
+    console.log(chalk.blue(`\n🔍 Analizando ${suggestions.length} sugerencias para obtener datos SEO...\n`));
+    
+    for (const suggestion of suggestions) {
+      await this.analyzeSuggestionKeyword(suggestion, country, language);
+      // Pequeña pausa entre peticiones
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    return this.getResults();
+  }
+
+  async analyzeSuggestionKeyword(keyword, country = 'ES', language = 'es') {
+    const spinner = ora(`Analizando sugerencia "${keyword}"...`).start();
+    const result = {
+      keyword,
+      timestamp: new Date().toISOString(),
+      suggestions: [],
+      keywordData: {},
+      domainData: {},
+      urlAnalysis: {},
+      errors: []
+    };
+
+    try {
+      // Para sugerencias, nos enfocamos principalmente en obtener datos SEO básicos
+      // sin analizar dominios ni URLs para ser más eficiente
+      
+      // 1. Obtener datos SEO básicos del keyword
+      spinner.text = `Obteniendo datos SEO para "${keyword}"...`;
+      result.keywordData = await getKeywordData([keyword], country);
+      
+      // 2. Obtener algunas sugerencias básicas si es necesario
+      spinner.text = `Obteniendo sugerencias rápidas para "${keyword}"...`;
+      try {
+        result.suggestions = await getGoogleSuggestions(keyword);
+        // Limitar a máximo 3 sugerencias para eficiencia
+        result.suggestions = result.suggestions.slice(0, 3);
+      } catch (error) {
+        // Si falla la obtención de sugerencias, no es crítico
+        result.errors.push(`Error obteniendo sugerencias: ${error.message}`);
+      }
+      
+      spinner.succeed(chalk.green(`✅ Datos SEO obtenidos para sugerencia "${keyword}"`));
+      this.results.set(keyword, result);
+      return result;
+      
+    } catch (error) {
+      result.errors.push(error.message);
+      spinner.fail(chalk.red(`❌ Error analizando sugerencia "${keyword}": ${error.message}`));
+      this.results.set(keyword, result);
+      return result;
+    }
+  }
+
   getResults() {
     return Array.from(this.results.values());
   }

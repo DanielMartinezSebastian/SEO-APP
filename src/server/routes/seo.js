@@ -171,6 +171,126 @@ router.get('/download/:filename', async (req, res) => {
   }
 });
 
+// POST /api/seo/analyze-suggestions - Analizar sugerencias de un reporte existente
+router.post('/analyze-suggestions', async (req, res) => {
+  try {
+    const { filename, country = 'ES', language = 'es' } = req.body;
+
+    if (!filename || !filename.endsWith('.json') || !filename.includes('seo_report_full_')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Se requiere un nombre de archivo de reporte válido'
+      });
+    }
+
+    const filePath = path.join(RESULTS_DIR, filename);
+    
+    // Leer el reporte existente
+    const data = await fs.readFile(filePath, 'utf8');
+    const reportData = JSON.parse(data);
+
+    // Extraer todas las sugerencias que no tienen datos SEO
+    const suggestionsToAnalyze = new Set();
+    
+    for (const report of reportData) {
+      if (report.suggestions && Array.isArray(report.suggestions)) {
+        for (const suggestion of report.suggestions) {
+          // Solo analizar sugerencias que no tengan datos SEO completos
+          if (!report.keywordData[suggestion] || !report.keywordData[suggestion].search_volume) {
+            suggestionsToAnalyze.add(suggestion);
+          }
+        }
+      }
+    }
+
+    if (suggestionsToAnalyze.size === 0) {
+      return res.json({
+        success: true,
+        message: 'No hay sugerencias nuevas para analizar',
+        suggestionsAnalyzed: 0,
+        data: reportData
+      });
+    }
+
+    const analyzer = new KeywordAnalyzer();
+    const exporter = new ExportService();
+
+    // Analizar todas las sugerencias como un lote
+    const suggestionsArray = Array.from(suggestionsToAnalyze);
+    await analyzer.analyzeSuggestions(suggestionsArray, country, language);
+    
+    // Combinar los datos existentes con los nuevos datos de sugerencias
+    const newSuggestionsData = analyzer.getResults();
+    const mergedData = await mergeSuggestionsIntoReport(reportData, newSuggestionsData);
+
+    // Guardar el reporte actualizado con timestamp actualizado
+    const updatedTimestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -1);
+    const newFilename = `seo_report_full_${updatedTimestamp}.json`;
+    const newFilePath = path.join(RESULTS_DIR, newFilename);
+    
+    await fs.writeFile(newFilePath, JSON.stringify(mergedData, null, 2));
+
+    // Exportar también el CSV actualizado
+    analyzer.results = new Map();
+    mergedData.forEach(report => {
+      analyzer.results.set(report.keyword, report);
+    });
+    
+    const { csvPath } = await exporter.exportFullReport(analyzer, updatedTimestamp);
+
+    res.json({
+      success: true,
+      message: `Se analizaron ${suggestionsArray.length} sugerencias exitosamente`,
+      suggestionsAnalyzed: suggestionsArray.length,
+      originalFile: filename,
+      newFiles: {
+        json: newFilename,
+        csv: path.basename(csvPath)
+      },
+      downloadUrls: {
+        json: `/api/seo/download/${newFilename}`,
+        csv: `/api/seo/download/${path.basename(csvPath)}`
+      },
+      data: mergedData
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Error analizando sugerencias',
+      message: error.message
+    });
+  }
+});
+
+// Función auxiliar para combinar datos de sugerencias en el reporte
+async function mergeSuggestionsIntoReport(originalData, suggestionsData) {
+  const mergedData = JSON.parse(JSON.stringify(originalData)); // Deep copy
+  
+  // Crear un mapa de los nuevos datos de sugerencias
+  const suggestionsMap = new Map();
+  suggestionsData.forEach(item => {
+    if (item.keywordData) {
+      Object.keys(item.keywordData).forEach(keyword => {
+        suggestionsMap.set(keyword, item.keywordData[keyword]);
+      });
+    }
+  });
+
+  // Integrar los datos de sugerencias en cada reporte
+  mergedData.forEach(report => {
+    if (report.suggestions && Array.isArray(report.suggestions)) {
+      report.suggestions.forEach(suggestion => {
+        if (suggestionsMap.has(suggestion) && !report.keywordData[suggestion]) {
+          report.keywordData[suggestion] = suggestionsMap.get(suggestion);
+        }
+      });
+    }
+  });
+
+  return mergedData;
+}
+
 // DELETE /api/seo/report/:filename - Eliminar un reporte
 router.delete('/report/:filename', async (req, res) => {
   try {
