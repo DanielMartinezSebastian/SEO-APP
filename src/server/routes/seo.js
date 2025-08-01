@@ -222,9 +222,12 @@ router.post('/analyze-suggestions', async (req, res) => {
     // Verificar si realmente se obtuvieron nuevos datos antes de combinar
     const newSuggestionsData = analyzer.getResults();
     let successfullyAnalyzed = 0;
+    let processedSuccessfully = 0;
     
     // Contar cuántas sugerencias realmente obtuvieron datos SEO
     for (const result of newSuggestionsData) {
+      processedSuccessfully++; // Contar que el análisis se ejecutó sin errores
+      
       if (result.keywordData) {
         for (const [keyword, data] of Object.entries(result.keywordData)) {
           if (suggestionsToAnalyze.has(keyword) && 
@@ -236,51 +239,60 @@ router.post('/analyze-suggestions', async (req, res) => {
       }
     }
     
-    // Si no se analizó ninguna sugerencia con éxito, devolver un error
-    if (successfullyAnalyzed === 0) {
+    // Si no se procesó ninguna sugerencia (error total del sistema), devolver error
+    if (processedSuccessfully === 0) {
       return res.status(500).json({
         success: false,
-        error: 'No se pudieron obtener datos SEO para ninguna sugerencia',
-        message: 'Todas las consultas a la API de keywords fallaron. Por favor, verifica la conectividad de red o intenta más tarde.',
+        error: 'Error del sistema analizando sugerencias',
+        message: 'No se pudo procesar ninguna sugerencia. Por favor, verifica la conectividad de red o intenta más tarde.',
         suggestionsAttempted: suggestionsArray.length,
         suggestionsAnalyzed: 0,
         data: reportData // Devolver los datos originales
       });
     }
     
-    // Combinar los datos existentes con los nuevos datos de sugerencias
-    const mergedData = await mergeSuggestionsIntoReport(reportData, newSuggestionsData);
-
-    // Guardar el reporte actualizado con timestamp actualizado
-    const updatedTimestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -1);
-    const newFilename = `seo_report_full_${updatedTimestamp}.json`;
-    const newFilePath = path.join(RESULTS_DIR, newFilename);
+    let newFilename, csvPath, mergedData;
     
-    await fs.writeFile(newFilePath, JSON.stringify(mergedData, null, 2));
+    // Solo crear nuevos archivos si realmente hay datos nuevos
+    if (successfullyAnalyzed > 0) {
+      // Combinar los datos existentes con los nuevos datos de sugerencias
+      mergedData = await mergeSuggestionsIntoReport(reportData, newSuggestionsData);
 
-    // Exportar también el CSV actualizado
-    analyzer.results = new Map();
-    mergedData.forEach(report => {
-      analyzer.results.set(report.keyword, report);
-    });
-    
-    const { csvPath } = await exporter.exportFullReport(analyzer, updatedTimestamp);
+      // Guardar el reporte actualizado con timestamp actualizado
+      const updatedTimestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -1);
+      newFilename = `seo_report_full_${updatedTimestamp}.json`;
+      const newFilePath = path.join(RESULTS_DIR, newFilename);
+      
+      await fs.writeFile(newFilePath, JSON.stringify(mergedData, null, 2));
+
+      // Exportar también el CSV actualizado
+      analyzer.results = new Map();
+      mergedData.forEach(report => {
+        analyzer.results.set(report.keyword, report);
+      });
+      
+      const exportResult = await exporter.exportFullReport(analyzer, updatedTimestamp);
+      csvPath = exportResult.csvPath;
+    }
 
     res.json({
       success: true,
-      message: `Se analizaron ${successfullyAnalyzed} de ${suggestionsArray.length} sugerencias exitosamente`,
+      message: successfullyAnalyzed > 0 ? 
+        `Se analizaron ${successfullyAnalyzed} de ${suggestionsArray.length} sugerencias exitosamente. ${suggestionsArray.length - successfullyAnalyzed} sugerencias no tenían datos SEO disponibles.` :
+        `Se procesaron ${suggestionsArray.length} sugerencias, pero ninguna tenía datos SEO disponibles en la base de datos.`,
       suggestionsAnalyzed: successfullyAnalyzed,
+      suggestionsProcessed: processedSuccessfully,
       suggestionsAttempted: suggestionsArray.length,
       originalFile: filename,
-      newFiles: {
+      newFiles: successfullyAnalyzed > 0 ? {
         json: newFilename,
         csv: path.basename(csvPath)
-      },
-      downloadUrls: {
+      } : null,
+      downloadUrls: successfullyAnalyzed > 0 ? {
         json: `/api/seo/download/${newFilename}`,
         csv: `/api/seo/download/${path.basename(csvPath)}`
-      },
-      data: mergedData
+      } : null,
+      data: successfullyAnalyzed > 0 ? mergedData : reportData
     });
 
   } catch (error) {

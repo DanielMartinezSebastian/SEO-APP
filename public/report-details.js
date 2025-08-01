@@ -625,6 +625,9 @@ class ReportDetailsApp {
     }
 
     async analyzeSuggestions() {
+        const btn = document.getElementById('analyzeSuggestionsBtn');
+        const originalText = btn.innerHTML;
+        
         try {
             // Verificar si hay sugerencias sin datos SEO completos
             const missingSuggestions = this.getMissingSuggestionsCount();
@@ -645,8 +648,6 @@ class ReportDetailsApp {
             }
 
             // Mostrar loading y deshabilitar botón
-            const btn = document.getElementById('analyzeSuggestionsBtn');
-            const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analizando...';
             btn.disabled = true;
 
@@ -670,20 +671,39 @@ class ReportDetailsApp {
             const result = await response.json();
             
             if (result.success) {
-                // Mostrar mensaje de éxito
-                alert(
-                    `¡Análisis completado exitosamente!\n\n` +
-                    `Se analizaron ${result.suggestionsAnalyzed} sugerencias.\n` +
-                    `Nuevos archivos generados:\n` +
-                    `- ${result.newFiles.json}\n` +
-                    `- ${result.newFiles.csv}\n\n` +
-                    `La página se recargará para mostrar los datos actualizados.`
-                );
+                // Verificar si se crearon nuevos archivos
+                if (result.newFiles && result.newFiles.json) {
+                    // Mostrar mensaje de éxito con nuevos archivos
+                    alert(
+                        `¡Análisis completado exitosamente!\n\n` +
+                        `Se analizaron ${result.suggestionsAnalyzed} de ${result.suggestionsAttempted} sugerencias.\n` +
+                        `Nuevos archivos generados:\n` +
+                        `- ${result.newFiles.json}\n` +
+                        `- ${result.newFiles.csv}\n\n` +
+                        `La página se recargará para mostrar los datos actualizados.`
+                    );
 
-                // Redirigir al nuevo reporte
-                window.location.href = `report-details.html?filename=${encodeURIComponent(result.newFiles.json)}`;
+                    // Redirigir al nuevo reporte
+                    window.location.href = `report-details.html?filename=${encodeURIComponent(result.newFiles.json)}`;
+                } else {
+                    // Análisis completado pero sin nuevos archivos (no había datos SEO disponibles)
+                    alert(
+                        `Análisis completado.\n\n` +
+                        `${result.message}\n\n` +
+                        `Se procesaron ${result.suggestionsProcessed || 0} sugerencias, pero ${result.suggestionsAnalyzed || 0} obtuvieron datos SEO válidos.`
+                    );
+                    
+                    // Restaurar botón
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
             } else {
-                throw new Error(result.error || 'Error desconocido');
+                // Mostrar el error específico del servidor
+                alert(`Error en el análisis: ${result.error || 'Error desconocido'}\n\n${result.message || ''}`);
+                
+                // Restaurar botón
+                btn.innerHTML = originalText;
+                btn.disabled = false;
             }
 
         } catch (error) {
@@ -691,7 +711,6 @@ class ReportDetailsApp {
             alert('Error al analizar sugerencias: ' + error.message);
             
             // Restaurar botón
-            const btn = document.getElementById('analyzeSuggestionsBtn');
             btn.innerHTML = originalText;
             btn.disabled = false;
         }
