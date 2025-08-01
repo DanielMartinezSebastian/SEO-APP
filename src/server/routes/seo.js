@@ -219,8 +219,36 @@ router.post('/analyze-suggestions', async (req, res) => {
     const suggestionsArray = Array.from(suggestionsToAnalyze);
     await analyzer.analyzeSuggestions(suggestionsArray, country, language);
     
-    // Combinar los datos existentes con los nuevos datos de sugerencias
+    // Verificar si realmente se obtuvieron nuevos datos antes de combinar
     const newSuggestionsData = analyzer.getResults();
+    let successfullyAnalyzed = 0;
+    
+    // Contar cuántas sugerencias realmente obtuvieron datos SEO
+    for (const result of newSuggestionsData) {
+      if (result.keywordData) {
+        for (const [keyword, data] of Object.entries(result.keywordData)) {
+          if (suggestionsToAnalyze.has(keyword) && 
+              data && 
+              typeof data.search_volume === 'number') {
+            successfullyAnalyzed++;
+          }
+        }
+      }
+    }
+    
+    // Si no se analizó ninguna sugerencia con éxito, devolver un error
+    if (successfullyAnalyzed === 0) {
+      return res.status(500).json({
+        success: false,
+        error: 'No se pudieron obtener datos SEO para ninguna sugerencia',
+        message: 'Todas las consultas a la API de keywords fallaron. Por favor, verifica la conectividad de red o intenta más tarde.',
+        suggestionsAttempted: suggestionsArray.length,
+        suggestionsAnalyzed: 0,
+        data: reportData // Devolver los datos originales
+      });
+    }
+    
+    // Combinar los datos existentes con los nuevos datos de sugerencias
     const mergedData = await mergeSuggestionsIntoReport(reportData, newSuggestionsData);
 
     // Guardar el reporte actualizado con timestamp actualizado
@@ -240,8 +268,9 @@ router.post('/analyze-suggestions', async (req, res) => {
 
     res.json({
       success: true,
-      message: `Se analizaron ${suggestionsArray.length} sugerencias exitosamente`,
-      suggestionsAnalyzed: suggestionsArray.length,
+      message: `Se analizaron ${successfullyAnalyzed} de ${suggestionsArray.length} sugerencias exitosamente`,
+      suggestionsAnalyzed: successfullyAnalyzed,
+      suggestionsAttempted: suggestionsArray.length,
       originalFile: filename,
       newFiles: {
         json: newFilename,
