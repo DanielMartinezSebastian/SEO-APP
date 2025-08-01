@@ -90,6 +90,13 @@ class AnalyticsApp {
             return;
         }
 
+        // Añadir listener para cambios de tema
+        document.addEventListener('theme-changed', (event) => {
+            console.log('Theme changed event received:', event.detail);
+            this.configureChartTheme();
+            this.updateChartsTheme();
+        });
+
         this.loadReportData();
     }
 
@@ -613,17 +620,23 @@ class AnalyticsApp {
     }
 
     renderDistributionCharts() {
+        console.log('renderDistributionCharts called - recreating all distribution charts');
         this.renderTypeDistribution();
         this.renderCompetitionDistribution();
         this.renderCPCDistribution();
         this.renderCorrelationChart();
+        console.log('All distribution charts recreated');
     }
 
     renderTypeDistribution() {
+        console.log('renderTypeDistribution called');
         const ctx = document.getElementById('typeDistributionChart').getContext('2d');
+        const isDark = window.themeManager.isDarkMode();
+        console.log('Type distribution - isDark:', isDark);
         
         if (this.distributionCharts.type) {
             this.distributionCharts.type.destroy();
+            console.log('Destroyed existing type distribution chart');
         }
 
         const typeCounts = {
@@ -655,7 +668,33 @@ class AnalyticsApp {
                 responsive: true,
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            color: isDark ? '#ffffff' : '#666666',
+                            font: {
+                                size: 14
+                            },
+                            generateLabels: function(chart) {
+                                const data = chart.data;
+                                if (data.labels.length && data.datasets.length) {
+                                    return data.labels.map((label, i) => {
+                                        const meta = chart.getDatasetMeta(0);
+                                        const style = meta.controller.getStyle(i);
+                                        
+                                        return {
+                                            text: label,
+                                            fillStyle: style.backgroundColor,
+                                            strokeStyle: style.borderColor,
+                                            lineWidth: style.borderWidth,
+                                            hidden: isNaN(data.datasets[0].data[i]) || meta.data[i].hidden,
+                                            index: i,
+                                            fontColor: isDark ? '#ffffff' : '#666666'
+                                        };
+                                    });
+                                }
+                                return [];
+                            }
+                        }
                     }
                 }
             }
@@ -707,10 +746,14 @@ class AnalyticsApp {
     }
 
     renderCPCDistribution() {
+        console.log('renderCPCDistribution called');
         const ctx = document.getElementById('cpcDistributionChart').getContext('2d');
+        const isDark = window.themeManager.isDarkMode();
+        console.log('CPC distribution - isDark:', isDark);
         
         if (this.distributionCharts.cpc) {
             this.distributionCharts.cpc.destroy();
+            console.log('Destroyed existing CPC distribution chart');
         }
 
         const mainKeywords = this.allKeywords.filter(kw => kw.type === 'main');
@@ -737,7 +780,10 @@ class AnalyticsApp {
                 responsive: true,
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        labels: {
+                            color: isDark ? '#ffffff' : '#666666'
+                        }
                     }
                 }
             }
@@ -961,6 +1007,78 @@ class AnalyticsApp {
             return (num / 1000).toFixed(1) + 'K';
         }
         return num.toLocaleString('es-ES');
+    }
+
+    updateChartsTheme() {
+        console.log('=== updateChartsTheme called ===');
+        const isDark = window.themeManager.isDarkMode();
+        console.log('Current theme - isDark:', isDark);
+        
+        const legendColor = isDark ? '#ffffff' : '#666666';
+        const gridColor = isDark ? '#404040' : '#e0e0e0';
+        
+        // Actualizar gráfico principal
+        if (this.currentChart) {
+            console.log('Updating main chart theme');
+            
+            // Actualizar configuración del gráfico principal
+            this.currentChart.options.plugins.legend.labels.color = legendColor;
+            
+            // Actualizar grids
+            if (this.currentChart.options.scales) {
+                Object.keys(this.currentChart.options.scales).forEach(scale => {
+                    if (this.currentChart.options.scales[scale].grid) {
+                        this.currentChart.options.scales[scale].grid.color = gridColor;
+                    }
+                    if (this.currentChart.options.scales[scale].ticks) {
+                        this.currentChart.options.scales[scale].ticks.color = legendColor;
+                    }
+                });
+            }
+            
+            this.currentChart.update();
+        }
+
+        // Actualizar gráficos de distribución existentes
+        console.log('Updating distribution charts...');
+        if (this.distributionCharts.type) {
+            this.distributionCharts.type.options.plugins.legend.labels.color = legendColor;
+            this.distributionCharts.type.update('none');
+            console.log('Updated type chart legend color to:', legendColor);
+        }
+        
+        if (this.distributionCharts.volume) {
+            this.distributionCharts.volume.options.plugins.legend.labels.color = legendColor;
+            this.distributionCharts.volume.update('none');
+            console.log('Updated volume chart legend color to:', legendColor);
+        }
+        
+        if (this.distributionCharts.competition) {
+            this.distributionCharts.competition.options.plugins.legend.labels.color = legendColor;
+            this.distributionCharts.competition.update('none');
+            console.log('Updated competition chart legend color to:', legendColor);
+        }
+        
+        // Forzar actualización de elementos DOM
+        setTimeout(() => {
+            const chartContainers = document.querySelectorAll('.chart-container');
+            chartContainers.forEach(container => {
+                const legendItems = container.querySelectorAll('canvas + div ul li, .chartjs-legend ul li');
+                legendItems.forEach(item => {
+                    item.style.color = legendColor + ' !important';
+                });
+                
+                const legendTexts = container.querySelectorAll('canvas + div ul li span, .chartjs-legend ul li span');
+                legendTexts.forEach(text => {
+                    text.style.color = legendColor + ' !important';
+                });
+            });
+            console.log('Forced DOM legend color update to:', legendColor);
+        }, 100);
+        
+        // Rehacer la leyenda de colores personalizada
+        this.renderColorLegend();
+        console.log('=== updateChartsTheme completed ===');
     }
 
     formatCurrency(amount) {

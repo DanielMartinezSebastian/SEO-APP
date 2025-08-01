@@ -53,7 +53,16 @@ class SEOApp {
             const response = await fetch('/api/seo/reports');
             if (response.ok) {
                 const result = await response.json();
-                this.renderReports(result.reports || []);
+                const reports = result.reports || [];
+                this.renderReports(reports);
+                
+                // Mostrar sección de reportes si hay reportes disponibles
+                const reportsSection = document.querySelector('.reports-section');
+                if (reports.length > 0) {
+                    reportsSection.style.display = 'block';
+                } else {
+                    reportsSection.style.display = 'none';
+                }
             } else {
                 console.error('Error loading reports:', response.status);
                 document.getElementById('reportsContainer').innerHTML = 

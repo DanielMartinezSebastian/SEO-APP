@@ -211,7 +211,7 @@ small {
     gap: 15px;
     margin-bottom: 20px;
     padding: 15px;
-    background: #f8f9fa;
+    background: var(--bg-secondary);
     border-radius: 8px;
     border: 1px solid var(--border-color);
 }
@@ -222,6 +222,7 @@ small {
     gap: 8px;
     font-size: 0.9rem;
     font-weight: 500;
+    color: var(--text-primary);
 }
 
 .legend-color {
@@ -702,4 +703,42 @@ small {
     .btn-export-table {
         display: none;
     }
+}
+
+/* Chart.js Legend Color Fix */
+.chart-container .chartjs-legend ul li span,
+.chart-container .chartjs-legend-item span,
+.chart-container canvas + div li span {
+    color: var(--text-color) !important;
+}
+
+/* Force legend colors based on theme */
+[data-theme="dark"] .chart-container .chartjs-legend ul li span,
+[data-theme="dark"] .chart-container .chartjs-legend-item span,
+[data-theme="dark"] .chart-container canvas + div li span,
+[data-theme="dark"] .chart-container canvas + div {
+    color: #ffffff !important;
+}
+
+[data-theme="light"] .chart-container .chartjs-legend ul li span,
+[data-theme="light"] .chart-container .chartjs-legend-item span,
+[data-theme="light"] .chart-container canvas + div li span,
+[data-theme="light"] .chart-container canvas + div {
+    color: #666666 !important;
+}
+
+/* Additional Chart.js legend selectors */
+.chart-container canvas + div ul li,
+.chart-container .chartjs-legend ul li {
+    color: var(--text-color) !important;
+}
+
+[data-theme="dark"] .chart-container canvas + div ul li,
+[data-theme="dark"] .chart-container .chartjs-legend ul li {
+    color: #ffffff !important;
+}
+
+[data-theme="light"] .chart-container canvas + div ul li,
+[data-theme="light"] .chart-container .chartjs-legend ul li {
+    color: #666666 !important;
 }

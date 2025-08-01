@@ -53,6 +53,11 @@ class ThemeManager {
         
         // Actualizar gráficos si existen
         this.updateChartColors();
+        
+        // Disparar evento personalizado para notificar el cambio de tema
+        document.dispatchEvent(new CustomEvent('theme-changed', {
+            detail: { theme: theme, isDark: theme === 'dark' }
+        }));
     }
 
     toggleTheme() {
@@ -137,25 +142,6 @@ class ThemeManager {
             Chart.defaults.color = isDark ? '#ffffff' : '#666666';
             Chart.defaults.borderColor = isDark ? '#404040' : '#dee2e6';
             Chart.defaults.backgroundColor = isDark ? '#1e1e1e' : '#ffffff';
-            
-            // Si hay gráficos activos, actualizarlos
-            if (window.analyticsApp) {
-                // Reconfigurar el tema para los gráficos
-                if (window.analyticsApp.configureChartTheme) {
-                    window.analyticsApp.configureChartTheme();
-                }
-                
-                // Actualizar el gráfico principal
-                if (window.analyticsApp.currentChart) {
-                    // Destruir y recrear el gráfico con los nuevos colores
-                    window.analyticsApp.renderMainChart();
-                }
-                
-                // Actualizar gráficos de distribución
-                if (window.analyticsApp.distributionCharts) {
-                    window.analyticsApp.renderDistributionCharts();
-                }
-            }
         }
     }
 
