@@ -9,6 +9,23 @@ export class KeywordAnalyzer {
     this.results = new Map();
   }
 
+  // Función para limpiar keywords y crear URLs válidas
+  sanitizeKeywordForUrl(keyword) {
+    return keyword
+      .toLowerCase()
+      .replace(/[áàäâã]/g, 'a')
+      .replace(/[éèëê]/g, 'e')
+      .replace(/[íìïî]/g, 'i')
+      .replace(/[óòöôõ]/g, 'o')
+      .replace(/[úùüû]/g, 'u')
+      .replace(/[ñ]/g, 'n')
+      .replace(/[ç]/g, 'c')
+      .replace(/\s+/g, '-')           // Espacios -> guiones
+      .replace(/[^a-z0-9\-]/g, '')    // Eliminar caracteres especiales
+      .replace(/-+/g, '-')            // Múltiples guiones -> un guión
+      .replace(/^-|-$/g, '');         // Eliminar guiones al inicio/final
+  }
+
   async analyzeKeyword(keyword, country = 'ES', language = 'es') {
     const spinner = ora(`Analizando "${keyword}"...`).start();
     const result = {
@@ -33,7 +50,8 @@ export class KeywordAnalyzer {
       
       // 3. Analizar dominio
       spinner.text = `Analizando dominio ${keyword}.es...`;
-      const domain = `${keyword}.es`;
+      const cleanKeyword = this.sanitizeKeywordForUrl(keyword);
+      const domain = `${cleanKeyword}.es`;
       result.domainData = await getDomainData(domain, country);
       
       // 4. Análisis on-page
@@ -74,8 +92,9 @@ export class KeywordAnalyzer {
     
     for (const [keyword, data] of this.results) {
       const keywordInfo = data.keywordData[keyword] || {};
-      const domainInfo = data.domainData[`${keyword}.es`] || {};
-      const urlInfo = data.urlAnalysis[`https://www.${keyword}.es`] || {};
+      const cleanKeyword = this.sanitizeKeywordForUrl(keyword);
+      const domainInfo = data.domainData[`${cleanKeyword}.es`] || {};
+      const urlInfo = data.urlAnalysis[`https://www.${cleanKeyword}.es`] || {};
       
       summary.push({
         keyword,

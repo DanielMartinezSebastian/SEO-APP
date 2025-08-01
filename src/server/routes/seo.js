@@ -94,13 +94,6 @@ router.post('/analyze', async (req, res) => {
       });
     }
 
-    if (keywords.length > 10) {
-      return res.status(400).json({
-        success: false,
-        error: 'Máximo 10 keywords por análisis'
-      });
-    }
-
     const analyzer = new KeywordAnalyzer();
     const exporter = new ExportService();
 
@@ -191,11 +184,37 @@ router.delete('/report/:filename', async (req, res) => {
     }
 
     const filePath = path.join(RESULTS_DIR, filename);
+
+    // Construir el nombre del CSV asociado
+    let csvFilename = null;
+    if (filename.startsWith('seo_report_full_') && filename.endsWith('.json')) {
+      const timestamp = filename.replace('seo_report_full_', '').replace('.json', '');
+      csvFilename = `seo_report_summary_${timestamp}.csv`;
+    }
+
+    // Eliminar el JSON
     await fs.unlink(filePath);
+
+    // Intentar eliminar el CSV si existe
+    let csvDeleted = false;
+    if (csvFilename) {
+      const csvPath = path.join(RESULTS_DIR, csvFilename);
+      try {
+        await fs.unlink(csvPath);
+        csvDeleted = true;
+      } catch (err) {
+        // Si el CSV no existe, no es un error fatal
+        if (err.code !== 'ENOENT') throw err;
+      }
+    }
 
     res.json({
       success: true,
-      message: 'Reporte eliminado exitosamente'
+      message: 'Reporte eliminado exitosamente',
+      filesDeleted: {
+        json: filename,
+        csv: csvDeleted ? csvFilename : null
+      }
     });
 
   } catch (error) {

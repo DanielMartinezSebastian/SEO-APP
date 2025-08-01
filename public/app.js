@@ -136,10 +136,6 @@ class SEOApp {
             return;
         }
 
-        if (keywordArray.length > 10) {
-            this.showStatus('Máximo 10 keywords por análisis', 'error');
-            return;
-        }
 
         // UI feedback
         button.disabled = true;
@@ -763,13 +759,8 @@ class SEOApp {
             });
         }
         
-        // Truncar a máximo 10 keywords
-        const truncatedKeywords = keywords.slice(0, 10);
-        
-        if (keywords.length > 10) {
-            return truncatedKeywords.join(', ') + ` (+${keywords.length - 10} más)`;
-        } else if (truncatedKeywords.length > 0) {
-            return truncatedKeywords.join(', ');
+        if (keywords.length > 0) {
+            return keywords.join(', ');
         } else {
             return 'Sin keywords encontradas';
         }
