@@ -4,6 +4,8 @@ class AnalyticsApp {
         this.reportFilename = null;
         this.allKeywords = [];
         this.filteredKeywords = [];
+        this.hiddenKeywords = new Set(); // Keywords ocultas
+        this.storageKey = null; // Se establecerá con el filename del reporte
         this.currentChart = null;
         this.distributionCharts = {};
         this.baseURL = '/api';
@@ -30,8 +32,6 @@ class AnalyticsApp {
             '#ffd8b1', // Melocotón
             '#000075', // Azul oscuro
             '#808080', // Gris
-            '#ffffff', // Blanco
-            '#000000'  // Negro
         ];
         this.currentConfig = {
             chartType: 'bar',
@@ -100,8 +100,156 @@ class AnalyticsApp {
         this.loadReportData();
     }
 
+    // Métodos para persistencia de keywords ocultas
+    loadHiddenKeywords() {
+        if (!this.storageKey) return;
+        
+        try {
+            const stored = localStorage.getItem(this.storageKey);
+            if (stored) {
+                const hiddenArray = JSON.parse(stored);
+                this.hiddenKeywords = new Set(hiddenArray);
+                console.log(`Cargadas ${hiddenArray.length} keywords ocultas para ${this.reportFilename}`);
+            }
+        } catch (error) {
+            console.error('Error cargando keywords ocultas:', error);
+            this.hiddenKeywords = new Set();
+        }
+    }
+
+    saveHiddenKeywords() {
+        if (!this.storageKey) return;
+        
+        try {
+            const hiddenArray = Array.from(this.hiddenKeywords);
+            localStorage.setItem(this.storageKey, JSON.stringify(hiddenArray));
+            console.log(`Guardadas ${hiddenArray.length} keywords ocultas para ${this.reportFilename}`);
+        } catch (error) {
+            console.error('Error guardando keywords ocultas:', error);
+        }
+    }
+
+    clearHiddenKeywords() {
+        if (!this.storageKey) return;
+        
+        try {
+            localStorage.removeItem(this.storageKey);
+            this.hiddenKeywords.clear();
+            console.log(`Limpiadas keywords ocultas para ${this.reportFilename}`);
+        } catch (error) {
+            console.error('Error limpiando keywords ocultas:', error);
+        }
+    }
+
+    // Método para obtener información de todas las keywords ocultas guardadas
+    getAllStoredHiddenKeywords() {
+        const allStoredData = {};
+        
+        try {
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('seo-hidden-keywords-')) {
+                    const reportName = key.replace('seo-hidden-keywords-', '');
+                    const hiddenKeywords = JSON.parse(localStorage.getItem(key));
+                    if (hiddenKeywords && hiddenKeywords.length > 0) {
+                        allStoredData[reportName] = hiddenKeywords;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error obteniendo keywords ocultas guardadas:', error);
+        }
+        
+        return allStoredData;
+    }
+
+    // Método para exportar/mostrar información de keywords ocultas
+    showHiddenKeywordsInfo() {
+        const allStoredData = this.getAllStoredHiddenKeywords();
+        
+        if (Object.keys(allStoredData).length === 0) {
+            this.showNotification('No hay keywords ocultas guardadas', 'info');
+            return;
+        }
+        
+        let info = 'Keywords ocultas por reporte:\n\n';
+        for (const [reportName, keywords] of Object.entries(allStoredData)) {
+            info += `${reportName}:\n`;
+            keywords.forEach(keyword => {
+                info += `  - ${keyword}\n`;
+            });
+            info += '\n';
+        }
+        
+        console.log(info);
+        alert(info); // Para mostrar la información al usuario
+    }
+
+    // Función para toggle de la sección de keywords ocultas
+    toggleHiddenKeywordsView() {
+        const content = document.getElementById('hiddenKeywordsContent');
+        const toggleBtn = document.getElementById('toggleHiddenKeywords');
+        const statusIndicator = document.getElementById('hiddenKeywordsStatus');
+        
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            toggleBtn.classList.add('expanded');
+            toggleBtn.title = 'Ocultar keywords ocultas';
+            if (statusIndicator) statusIndicator.textContent = '(visible)';
+        } else {
+            content.style.display = 'none';
+            toggleBtn.classList.remove('expanded');
+            toggleBtn.title = 'Mostrar keywords ocultas';
+            if (statusIndicator) statusIndicator.textContent = '(oculto)';
+        }
+    }
+
+    // Función para toggle de la tabla principal
+    toggleMainTableView() {
+        const content = document.getElementById('mainTableContent');
+        const toggleBtn = document.getElementById('toggleMainTable');
+        const statusIndicator = document.getElementById('mainTableStatus');
+        
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            toggleBtn.classList.add('expanded');
+            toggleBtn.title = 'Ocultar tabla de datos';
+            if (statusIndicator) statusIndicator.textContent = '(visible)';
+        } else {
+            content.style.display = 'none';
+            toggleBtn.classList.remove('expanded');
+            toggleBtn.title = 'Mostrar tabla de datos';
+            if (statusIndicator) statusIndicator.textContent = '(oculto)';
+        }
+    }
+
+    // Función para toggle de la leyenda de colores
+    toggleColorLegendView() {
+        const content = document.getElementById('colorLegend');
+        const toggleBtn = document.getElementById('toggleColorLegend');
+        const statusIndicator = document.getElementById('colorLegendStatus');
+        
+        if (content.style.display === 'none') {
+            content.style.display = 'block';
+            toggleBtn.classList.add('expanded');
+            toggleBtn.title = 'Ocultar leyenda de colores';
+            if (statusIndicator) statusIndicator.textContent = '(visible)';
+        } else {
+            content.style.display = 'none';
+            toggleBtn.classList.remove('expanded');
+            toggleBtn.title = 'Mostrar leyenda de colores';
+            if (statusIndicator) statusIndicator.textContent = '(oculto)';
+        }
+    }
+
     async loadReportData() {
         try {
+            // Establecer la clave de almacenamiento basada en el filename
+            this.storageKey = `seo-hidden-keywords-${this.reportFilename}`;
+            
+            // Cargar keywords ocultas guardadas
+            this.loadHiddenKeywords();
+            
             const response = await fetch(`${this.baseURL}/seo/report/${this.reportFilename}`);
             
             if (!response.ok) {
@@ -218,6 +366,9 @@ class AnalyticsApp {
     applyFilters() {
         let filtered = [...this.allKeywords];
 
+        // Excluir keywords ocultas
+        filtered = filtered.filter(kw => !this.hiddenKeywords.has(kw.keyword));
+
         // Filtrar por tipo
         if (this.currentConfig.keywordFilter !== 'all') {
             filtered = filtered.filter(kw => kw.type === this.currentConfig.keywordFilter);
@@ -269,6 +420,7 @@ class AnalyticsApp {
         this.renderStatistics();
         this.renderMainChart();
         this.renderTable();
+        this.renderHiddenKeywords();
         this.renderDistributionCharts();
         this.renderInsights();
     }
@@ -295,6 +447,8 @@ class AnalyticsApp {
 
     renderStatistics() {
         const totalKeywords = this.allKeywords.length;
+        const visibleKeywords = this.filteredKeywords.length;
+        const hiddenKeywordsCount = this.hiddenKeywords.size;
         const mainKeywords = this.allKeywords.filter(kw => kw.type === 'main');
         const avgVolume = mainKeywords.reduce((sum, kw) => sum + kw.search_volume, 0) / (mainKeywords.length || 1);
         const avgCPC = mainKeywords.reduce((sum, kw) => sum + kw.cpc, 0) / (mainKeywords.length || 1);
@@ -308,6 +462,16 @@ class AnalyticsApp {
         document.getElementById('avgCompetition').textContent = this.formatPercent(avgCompetition);
         document.getElementById('totalSuggestions').textContent = this.formatNumber(totalSuggestions);
         document.getElementById('totalSimilar').textContent = this.formatNumber(totalSimilar);
+
+        // Actualizar el indicador de keywords visibles vs totales
+        const totalKeywordsElement = document.getElementById('totalKeywords');
+        if (hiddenKeywordsCount > 0) {
+            totalKeywordsElement.textContent = `${this.formatNumber(visibleKeywords)} / ${this.formatNumber(totalKeywords)}`;
+            totalKeywordsElement.title = `${hiddenKeywordsCount} keywords ocultas`;
+        } else {
+            totalKeywordsElement.textContent = this.formatNumber(totalKeywords);
+            totalKeywordsElement.title = '';
+        }
     }
 
     renderMainChart() {
@@ -331,6 +495,21 @@ class AnalyticsApp {
 
     renderColorLegend() {
         const legendContainer = document.getElementById('colorLegend');
+        const toggleBtn = document.getElementById('toggleColorLegend');
+        const statusIndicator = document.getElementById('colorLegendStatus');
+        
+        // Mantener el estado colapsado por defecto
+        if (legendContainer && !legendContainer.hasAttribute('data-initialized')) {
+            legendContainer.style.display = 'none';
+            if (toggleBtn) {
+                toggleBtn.classList.remove('expanded');
+                toggleBtn.title = 'Mostrar leyenda de colores';
+            }
+            if (statusIndicator) {
+                statusIndicator.textContent = '(oculto)';
+            }
+            legendContainer.setAttribute('data-initialized', 'true');
+        }
         
         const legendHTML = Object.entries(this.colorPalette).map(([keyword, colors], index) => {
             const mainKeywordData = this.reportData.find(item => item.keyword === keyword);
@@ -581,6 +760,19 @@ class AnalyticsApp {
     }
 
     renderTable() {
+        const mainTableContent = document.getElementById('mainTableContent');
+        const toggleBtn = document.getElementById('toggleMainTable');
+        
+        // Mantener el estado colapsado por defecto
+        if (mainTableContent && !mainTableContent.hasAttribute('data-initialized')) {
+            mainTableContent.style.display = 'none';
+            if (toggleBtn) {
+                toggleBtn.classList.remove('expanded');
+                toggleBtn.title = 'Mostrar tabla de datos';
+            }
+            mainTableContent.setAttribute('data-initialized', 'true');
+        }
+        
         const tbody = document.getElementById('analyticsTableBody');
         
         const tableHTML = this.filteredKeywords.map(kw => {
@@ -604,6 +796,11 @@ class AnalyticsApp {
                 <td>${this.formatPercent(kw.competition)}</td>
                 <td>${kw.similar_count}</td>
                 <td>${kw.suggestions_count}</td>
+                <td>
+                    <button class="btn-hide-keyword" onclick="analyticsApp.hideKeyword('${kw.keyword.replace(/'/g, "\\'")}', '${kw.type}')" title="Ocultar keyword">
+                        <i class="fas fa-eye-slash"></i>
+                    </button>
+                </td>
             </tr>
         `}).join('');
 
@@ -1095,6 +1292,125 @@ class AnalyticsApp {
             minimumFractionDigits: 1,
             maximumFractionDigits: 1
         }).format(value);
+    }
+
+    // Funciones para gestionar keywords ocultas
+    hideKeyword(keyword, type) {
+        this.hiddenKeywords.add(keyword);
+        this.saveHiddenKeywords(); // Guardar automáticamente
+        this.applyFilters();
+        this.updateCharts();
+        this.renderTable();
+        this.renderStatistics();
+        this.renderHiddenKeywords();
+        
+        // Mostrar mensaje de confirmación
+        this.showNotification(`Keyword "${keyword}" ocultada del análisis`, 'info');
+    }
+
+    showKeyword(keyword) {
+        this.hiddenKeywords.delete(keyword);
+        this.saveHiddenKeywords(); // Guardar automáticamente
+        this.applyFilters();
+        this.updateCharts();
+        this.renderTable();
+        this.renderStatistics();
+        this.renderHiddenKeywords();
+        
+        // Mostrar mensaje de confirmación
+        this.showNotification(`Keyword "${keyword}" restaurada al análisis`, 'success');
+    }
+
+    renderHiddenKeywords() {
+        const hiddenSection = document.getElementById('hiddenKeywordsSection');
+        const hiddenContent = document.getElementById('hiddenKeywordsContent');
+        const toggleBtn = document.getElementById('toggleHiddenKeywords');
+        
+        if (!hiddenSection) return;
+
+        if (this.hiddenKeywords.size === 0) {
+            hiddenSection.style.display = 'none';
+            return;
+        }
+
+        hiddenSection.style.display = 'block';
+        
+        // Mantener el estado colapsado por defecto
+        if (hiddenContent && !hiddenContent.hasAttribute('data-initialized')) {
+            hiddenContent.style.display = 'none';
+            if (toggleBtn) {
+                toggleBtn.classList.remove('expanded');
+            }
+            hiddenContent.setAttribute('data-initialized', 'true');
+        }
+        
+        const tbody = document.getElementById('hiddenKeywordsTableBody');
+        
+        const hiddenArray = Array.from(this.hiddenKeywords);
+        const hiddenKeywordObjects = this.allKeywords.filter(kw => this.hiddenKeywords.has(kw.keyword));
+        
+        const tableHTML = hiddenKeywordObjects.map(kw => {
+            const bgColor = this.getColorByKeyword(kw);
+            
+            return `
+            <tr style="background: linear-gradient(90deg, ${bgColor.replace('0.8', '0.3')} 0%, ${bgColor.replace('0.8', '0.1')} 100%); opacity: 0.7;">
+                <td>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div style="width: 12px; height: 12px; border-radius: 50%; background: ${bgColor.replace('0.8', '0.5')}; border: 2px solid ${this.getBorderColorByKeyword(kw)};"></div>
+                        <div>
+                            <strong>${kw.keyword}</strong>
+                            ${kw.parent_keyword !== kw.keyword ? `<br><small style="color: var(--text-secondary);">de: ${kw.parent_keyword}</small>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td><span class="keyword-type ${kw.type}" style="background: ${bgColor.replace('0.8', '0.5')}; color: #333;">${this.getTypeLabel(kw.type)}</span></td>
+                <td>${this.formatNumber(kw.search_volume)}</td>
+                <td>${this.formatCurrency(kw.cpc)}</td>
+                <td>${this.formatPercent(kw.competition)}</td>
+                <td>
+                    <button class="btn-show-keyword" onclick="analyticsApp.showKeyword('${kw.keyword.replace(/'/g, "\\'")}');" title="Restaurar keyword">
+                        <i class="fas fa-eye"></i> Restaurar
+                    </button>
+                </td>
+            </tr>
+        `}).join('');
+
+        tbody.innerHTML = tableHTML;
+        
+        // Actualizar contador
+        const countElement = document.getElementById('hiddenKeywordsCount');
+        if (countElement) {
+            countElement.textContent = this.hiddenKeywords.size;
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        // Crear elemento de notificación
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        // Agregar al DOM
+        document.body.appendChild(notification);
+        
+        // Mostrar con animación
+        setTimeout(() => notification.classList.add('show'), 100);
+        
+        // Ocultar después de 3 segundos
+        setTimeout(() => {
+            notification.classList.remove('show');
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    updateCharts() {
+        this.renderMainChart();
+        this.renderDistributionCharts();
     }
 }
 

@@ -28,7 +28,7 @@ body {
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1600px; /* Aumentado de 1200px a 1600px */
     margin: 0 auto;
     padding: 20px;
     min-height: 100dvh;
@@ -49,7 +49,7 @@ header {
     border-radius: 0;
     box-shadow: none;
     width: 100%;
-    max-width: 900px;
+    max-width: 1400px; /* Aumentado de 900px a 1400px */
 }
 
 header h1 {
@@ -91,7 +91,7 @@ section {
 /* Layout principal */
 main {
     width: 100%;
-    max-width: 900px;
+    max-width: 1400px; /* Aumentado de 900px a 1400px */
     display: flex;
     flex-direction: column;
     align-items: center;

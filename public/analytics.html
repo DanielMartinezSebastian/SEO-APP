@@ -55,6 +55,34 @@
         <!-- Analytics Content -->
         <main id="analyticsContent" class="analytics-content hidden">
             
+            <!-- Statistics Summary -->
+            <section class="stats-summary">
+                <div class="stat-card">
+                    <div id="totalKeywords" class="stat-value">0</div>
+                    <div class="stat-label">Total Keywords</div>
+                </div>
+                <div class="stat-card">
+                    <div id="avgVolume" class="stat-value">0</div>
+                    <div class="stat-label">Volumen Promedio</div>
+                </div>
+                <div class="stat-card">
+                    <div id="avgCPC" class="stat-value">€0.00</div>
+                    <div class="stat-label">CPC Promedio</div>
+                </div>
+                <div class="stat-card">
+                    <div id="avgCompetition" class="stat-value">0%</div>
+                    <div class="stat-label">Competencia Promedio</div>
+                </div>
+                <div class="stat-card">
+                    <div id="totalSuggestions" class="stat-value">0</div>
+                    <div class="stat-label">Total Sugerencias</div>
+                </div>
+                <div class="stat-card">
+                    <div id="totalSimilar" class="stat-value">0</div>
+                    <div class="stat-label">Keywords Similares</div>
+                </div>
+            </section>
+
             <!-- Controls Panel -->
             <section class="controls-panel">
                 <div class="control-group">
@@ -108,33 +136,11 @@
                         <option value="all">Todas</option>
                     </select>
                 </div>
-            </section>
-
-            <!-- Statistics Summary -->
-            <section class="stats-summary">
-                <div class="stat-card">
-                    <div id="totalKeywords" class="stat-value">0</div>
-                    <div class="stat-label">Total Keywords</div>
-                </div>
-                <div class="stat-card">
-                    <div id="avgVolume" class="stat-value">0</div>
-                    <div class="stat-label">Volumen Promedio</div>
-                </div>
-                <div class="stat-card">
-                    <div id="avgCPC" class="stat-value">€0.00</div>
-                    <div class="stat-label">CPC Promedio</div>
-                </div>
-                <div class="stat-card">
-                    <div id="avgCompetition" class="stat-value">0%</div>
-                    <div class="stat-label">Competencia Promedio</div>
-                </div>
-                <div class="stat-card">
-                    <div id="totalSuggestions" class="stat-value">0</div>
-                    <div class="stat-label">Total Sugerencias</div>
-                </div>
-                <div class="stat-card">
-                    <div id="totalSimilar" class="stat-value">0</div>
-                    <div class="stat-label">Keywords Similares</div>
+                
+                <div class="control-group">
+                    <button class="btn-secondary" onclick="analyticsApp.showHiddenKeywordsInfo()" title="Ver todas las keywords ocultas guardadas">
+                        <i class="fas fa-info-circle"></i> Info Keywords Ocultas
+                    </button>
                 </div>
             </section>
 
@@ -148,7 +154,16 @@
                 </div>
                 
                 <!-- Color Legend -->
-                <div class="color-legend" id="colorLegend">
+                <div class="legend-header">
+                    <h3>
+                        Leyenda de Colores
+                        <span id="colorLegendStatus" class="status-indicator">(oculto)</span>
+                        <button id="toggleColorLegend" class="btn-toggle-hidden" onclick="analyticsApp.toggleColorLegendView()" title="Mostrar/Ocultar leyenda de colores">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </h3>
+                </div>
+                <div class="color-legend" id="colorLegend" style="display: none;">
                     <!-- Populated by JavaScript -->
                 </div>
                 
@@ -160,14 +175,20 @@
             <!-- Detailed Table -->
             <section class="table-section">
                 <div class="table-header">
-                    <h2>Datos Detallados</h2>
+                    <h2>
+                        Datos Detallados
+                        <span id="mainTableStatus" class="status-indicator">(oculto)</span>
+                        <button id="toggleMainTable" class="btn-toggle-hidden" onclick="analyticsApp.toggleMainTableView()" title="Mostrar/Ocultar tabla de datos">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </h2>
                     <div class="table-actions">
                         <button onclick="analyticsApp.exportTableCSV()" class="btn-export-table">
                             <i class="fas fa-table"></i> Exportar CSV
                         </button>
                     </div>
                 </div>
-                <div class="table-container">
+                <div id="mainTableContent" class="table-container" style="display: none;">
                     <table id="analyticsTable" class="analytics-table">
                         <thead>
                             <tr>
@@ -192,9 +213,46 @@
                                 <th onclick="analyticsApp.sortTable('suggestions_count')">
                                     Sugerencias <i class="fas fa-sort"></i>
                                 </th>
+                                <th>
+                                    Acción
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="analyticsTableBody">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Hidden Keywords Section -->
+            <section id="hiddenKeywordsSection" class="table-section" style="display: none;">
+                <div class="table-header">
+                    <h2>
+                        <i class="fas fa-eye-slash"></i>
+                        Keywords Ocultas (<span id="hiddenKeywordsCount">0</span>)
+                        <span id="hiddenKeywordsStatus" class="status-indicator">(oculto)</span>
+                        <button id="toggleHiddenKeywords" class="btn-toggle-hidden" onclick="analyticsApp.toggleHiddenKeywordsView()" title="Mostrar/Ocultar keywords ocultas">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </h2>
+                    <div class="table-info">
+                        <small>Estas keywords han sido excluidas del análisis. Puedes restaurarlas haciendo clic en "Restaurar".</small>
+                    </div>
+                </div>
+                <div id="hiddenKeywordsContent" class="table-container" style="display: none;">
+                    <table class="analytics-table">
+                        <thead>
+                            <tr>
+                                <th>Keyword</th>
+                                <th>Tipo</th>
+                                <th>Volumen</th>
+                                <th>CPC</th>
+                                <th>Competencia</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hiddenKeywordsTableBody">
                             <!-- Populated by JavaScript -->
                         </tbody>
                     </table>
