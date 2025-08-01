@@ -78,3 +78,7 @@ reporte_descargado.json
 # Any other generated SEO reports
 **/seo_report_*.json
 **/seo_report_*.csv
+
+
+# BACKUP files
+BACKUP AUDITORIA/*
