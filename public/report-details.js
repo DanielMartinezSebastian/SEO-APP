@@ -615,6 +615,12 @@ class ReportDetailsApp {
         window.location.href = `analytics.html?filename=${encodeURIComponent(this.reportFilename)}`;
     }
 
+    openTools() {
+        // Redirect to tools page with this study pre-selected
+        const toolsUrl = `tools.html?study=${encodeURIComponent(this.reportFilename)}`;
+        window.location.href = toolsUrl;
+    }
+
     openInNewTab(url, event) {
         // Prevenir el menú contextual por defecto y el clic normal
         event.preventDefault();

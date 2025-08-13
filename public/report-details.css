@@ -153,7 +153,7 @@ small {
     justify-content: flex-end !important;
 }
 
-.btn-back, .btn-print, .btn-download, .btn-analytics {
+.btn-back, .btn-print, .btn-download, .btn-analytics, .btn-tools {
     padding: 8px 14px;
     border: none;
     border-radius: 8px;
@@ -198,6 +198,17 @@ small {
 .btn-print:hover {
     background: var(--btn-warning-hover);
     transform: translateY(-2px);
+}
+
+.btn-tools {
+    background: var(--primary-color, #8b5cf6);
+    color: white;
+}
+
+.btn-tools:hover {
+    background: var(--primary-hover, #7c3aed);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
 }
 
 .btn-download {

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { KeywordAnalyzer } from '../../services/keywordService.js';
 import { ExportService } from '../../services/exportService.js';
+import { ParagraphAnalyzer } from '../../services/paragraphAnalyzer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -391,6 +392,47 @@ router.delete('/report/:filename', async (req, res) => {
         message: error.message
       });
     }
+  }
+});
+
+// POST /api/seo/analyze-paragraph - Analizar párrafo para optimización de keywords
+router.post('/analyze-paragraph', async (req, res) => {
+  try {
+    const { paragraph, country = 'ES', studyContext = null } = req.body;
+
+    if (!paragraph || typeof paragraph !== 'string' || paragraph.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Se requiere un párrafo de texto para analizar'
+      });
+    }
+
+    const analyzer = new ParagraphAnalyzer();
+    
+    // Analizar el párrafo con contexto del estudio si está disponible
+    const analysis = await analyzer.analyzeParagraph(paragraph, country, studyContext);
+    
+    // Generar HTML con keywords resaltadas
+    const highlightedHTML = analyzer.generateHighlightedHTML(
+      analysis.originalText, 
+      analysis.analysis.keywordPositions
+    );
+
+    res.json({
+      success: true,
+      message: 'Análisis de párrafo completado exitosamente',
+      data: {
+        ...analysis,
+        highlightedHTML
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Error analizando el párrafo',
+      message: error.message
+    });
   }
 });
 
