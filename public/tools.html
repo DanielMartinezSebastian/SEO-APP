@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO App - Herramientas</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon-180x180.png">
+    <link rel="manifest" href="site.webmanifest">
+    
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="themes.css">
+    <link rel="stylesheet" href="tools.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="seo-logo.png" alt="SEO App Logo" class="header-logo">
+            <h1>
+                SEO App - Herramientas
+            </h1>
+            <p>Herramientas avanzadas para optimización SEO</p>
+        </header>
+
+        <!-- Navegación -->
+        <nav class="main-nav">
+            <a href="index.html" class="nav-item">
+                <i class="fas fa-home"></i> Inicio
+            </a>
+            <a href="tools.html" class="nav-item active">
+                <i class="fas fa-tools"></i> Herramientas
+            </a>
+        </nav>
+
+        <main>
+            <!-- Sección de Herramientas -->
+            <section class="tools-grid">
+                <div class="tool-card">
+                    <div class="tool-header">
+                        <i class="fas fa-paragraph"></i>
+                        <h2>Analizador de Párrafos</h2>
+                    </div>
+                    <p class="tool-description">
+                        Analiza párrafos de texto para identificar keywords de alto volumen y obtener sugerencias de optimización.
+                    </p>
+                    <button class="tool-button" onclick="openParagraphAnalyzer()">
+                        <i class="fas fa-play"></i> Abrir Herramienta
+                    </button>
+                </div>
+
+                <!-- Placeholder para futuras herramientas -->
+                <div class="tool-card coming-soon">
+                    <div class="tool-header">
+                        <i class="fas fa-link"></i>
+                        <h2>Analizador de URLs</h2>
+                    </div>
+                    <p class="tool-description">
+                        Analiza URLs para optimización SEO y estructura de keywords.
+                    </p>
+                    <button class="tool-button disabled" disabled>
+                        <i class="fas fa-clock"></i> Próximamente
+                    </button>
+                </div>
+
+                <div class="tool-card coming-soon">
+                    <div class="tool-header">
+                        <i class="fas fa-chart-line"></i>
+                        <h2>Monitor de Rankings</h2>
+                    </div>
+                    <p class="tool-description">
+                        Monitorea el ranking de tus keywords en tiempo real.
+                    </p>
+                    <button class="tool-button disabled" disabled>
+                        <i class="fas fa-clock"></i> Próximamente
+                    </button>
+                </div>
+            </section>
+
+            <!-- Modal del Analizador de Párrafos -->
+            <div id="paragraphModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-paragraph"></i> Analizador de Párrafos</h2>
+                        <span class="close" onclick="closeParagraphAnalyzer()">&times;</span>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div class="analyzer-form">
+                            <div class="form-group">
+                                <label for="paragraphText">Texto del párrafo:</label>
+                                <textarea 
+                                    id="paragraphText" 
+                                    placeholder="Ingresa aquí el párrafo que deseas analizar para optimización SEO..." 
+                                    rows="6"
+                                    maxlength="2000"
+                                ></textarea>
+                                <div class="char-counter">
+                                    <span id="charCount">0</span>/2000 caracteres
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="analysisCountry">País para análisis:</label>
+                                <select id="analysisCountry">
+                                    <option value="ES">España (ES)</option>
+                                    <option value="US">Estados Unidos (US)</option>
+                                    <option value="FR">Francia (FR)</option>
+                                    <option value="DE">Alemania (DE)</option>
+                                    <option value="IT">Italia (IT)</option>
+                                </select>
+                            </div>
+                            
+                            <button id="analyzeBtn" class="analyze-button" onclick="analyzeParagraph()">
+                                <i class="fas fa-search"></i> Analizar Párrafo
+                            </button>
+                        </div>
+
+                        <!-- Área de resultados -->
+                        <div id="analysisResults" class="analysis-results" style="display: none;">
+                            <div class="results-header">
+                                <h3><i class="fas fa-chart-bar"></i> Resultados del Análisis</h3>
+                            </div>
+                            
+                            <!-- Estadísticas generales -->
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <i class="fas fa-text-width"></i>
+                                    <div class="stat-info">
+                                        <span class="stat-label">Palabras</span>
+                                        <span id="wordCount" class="stat-value">-</span>
+                                    </div>
+                                </div>
+                                <div class="stat-card">
+                                    <i class="fas fa-search"></i>
+                                    <div class="stat-info">
+                                        <span class="stat-label">Keywords encontradas</span>
+                                        <span id="keywordCount" class="stat-value">-</span>
+                                    </div>
+                                </div>
+                                <div class="stat-card">
+                                    <i class="fas fa-fire"></i>
+                                    <div class="stat-info">
+                                        <span class="stat-label">Alto volumen</span>
+                                        <span id="highVolumeCount" class="stat-value">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Texto con keywords resaltadas -->
+                            <div class="highlighted-text-section">
+                                <h4><i class="fas fa-highlighter"></i> Texto con Keywords Resaltadas</h4>
+                                <div class="keyword-legend">
+                                    <div class="legend-item">
+                                        <span class="legend-color keyword-very-high"></span>
+                                        <span>Muy alto volumen (>10,000)</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-color keyword-high"></span>
+                                        <span>Alto volumen (5,000-10,000)</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-color keyword-medium"></span>
+                                        <span>Volumen medio (1,000-5,000)</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="legend-color keyword-low"></span>
+                                        <span>Bajo volumen (<1,000)</span>
+                                    </div>
+                                </div>
+                                <div id="highlightedText" class="highlighted-content"></div>
+                            </div>
+
+                            <!-- Keywords encontradas -->
+                            <div class="keywords-section">
+                                <h4><i class="fas fa-list"></i> Keywords Identificadas</h4>
+                                <div id="foundKeywords" class="keywords-list"></div>
+                            </div>
+
+                            <!-- Sugerencias -->
+                            <div class="suggestions-section">
+                                <h4><i class="fas fa-lightbulb"></i> Sugerencias de Optimización</h4>
+                                <div id="suggestions" class="suggestions-list"></div>
+                            </div>
+                        </div>
+
+                        <!-- Loading state -->
+                        <div id="analysisLoading" class="loading-state" style="display: none;">
+                            <div class="spinner"></div>
+                            <p>Analizando párrafo...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Botón de tema -->
+        <button 
+            id="themeToggle" 
+            class="theme-toggle" 
+            onclick="toggleTheme()"
+            title="Cambiar entre tema claro y oscuro"
+        >
+            <i class="fas fa-moon"></i>
+        </button>
+    </div>
+
+    <script src="themes.js"></script>
+    <script src="tools.js"></script>
+</body>
+</html>
