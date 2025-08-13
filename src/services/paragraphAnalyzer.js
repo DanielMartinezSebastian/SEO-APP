@@ -51,9 +51,10 @@ export class ParagraphAnalyzer {
    * Analiza un párrafo y retorna sugerencias de keywords
    * @param {string} paragraph - El párrafo a analizar
    * @param {string} country - Código del país (ES, US, etc.)
+   * @param {Object} studyContext - Contexto del estudio SEO seleccionado (opcional)
    * @returns {Object} Análisis del párrafo con sugerencias
    */
-  async analyzeParagraph(paragraph, country = 'ES') {
+  async analyzeParagraph(paragraph, country = 'ES', studyContext = null) {
     try {
       if (!paragraph || paragraph.trim().length === 0) {
         throw new Error('El párrafo no puede estar vacío');
@@ -73,16 +74,27 @@ export class ParagraphAnalyzer {
         }
       }
 
+      // Si hay contexto de estudio, enriquecer el análisis
+      let studyEnrichment = null;
+      if (studyContext && studyContext.keywords) {
+        studyEnrichment = this.enrichWithStudyContext(candidates, studyContext);
+      }
+
       // Analizar el texto
-      const analysis = this.performTextAnalysis(originalText, candidates, keywordData);
+      const analysis = this.performTextAnalysis(originalText, candidates, keywordData, studyEnrichment);
 
       return {
         originalText,
         wordCount: originalText.split(/\s+/).length,
         candidateKeywords: candidates,
         keywordData,
+        studyContext: studyContext ? {
+          filename: studyContext.filename,
+          totalKeywords: studyContext.keywords.length,
+          matchedKeywords: studyEnrichment?.matchedKeywords || []
+        } : null,
         analysis,
-        suggestions: this.generateSuggestions(analysis, keywordData),
+        suggestions: this.generateSuggestions(analysis, keywordData, studyEnrichment),
         timestamp: new Date().toISOString()
       };
 
@@ -92,13 +104,76 @@ export class ParagraphAnalyzer {
   }
 
   /**
+   * Enriquece el análisis con contexto del estudio SEO
+   * @param {Array} candidates - Keywords candidatas extraídas del texto
+   * @param {Object} studyContext - Contexto del estudio SEO
+   * @returns {Object} Datos de enriquecimiento
+   */
+  enrichWithStudyContext(candidates, studyContext) {
+    const studyKeywords = studyContext.keywords || [];
+    const matchedKeywords = [];
+    const recommendedKeywords = [];
+    
+    // Buscar coincidencias entre candidatos y keywords del estudio
+    candidates.forEach(candidate => {
+      const studyMatch = studyKeywords.find(sk => 
+        sk.keyword.toLowerCase() === candidate.toLowerCase() ||
+        sk.keyword.toLowerCase().includes(candidate.toLowerCase()) ||
+        candidate.toLowerCase().includes(sk.keyword.toLowerCase())
+      );
+      
+      if (studyMatch) {
+        matchedKeywords.push({
+          candidate,
+          studyKeyword: studyMatch.keyword,
+          volume: studyMatch.volume,
+          competition: studyMatch.competition,
+          cpc: studyMatch.cpc,
+          isExactMatch: studyMatch.keyword.toLowerCase() === candidate.toLowerCase()
+        });
+      }
+    });
+    
+    // Recomendar keywords del estudio que no están en el texto pero podrían ser relevantes
+    const highVolumeStudyKeywords = studyKeywords
+      .filter(sk => sk.volume > 5000)
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 5);
+    
+    highVolumeStudyKeywords.forEach(sk => {
+      const isInText = candidates.some(candidate => 
+        candidate.toLowerCase().includes(sk.keyword.toLowerCase()) ||
+        sk.keyword.toLowerCase().includes(candidate.toLowerCase())
+      );
+      
+      if (!isInText) {
+        recommendedKeywords.push({
+          keyword: sk.keyword,
+          volume: sk.volume,
+          competition: sk.competition,
+          cpc: sk.cpc,
+          reason: 'Alto volumen en el estudio'
+        });
+      }
+    });
+    
+    return {
+      matchedKeywords,
+      recommendedKeywords,
+      totalStudyKeywords: studyKeywords.length,
+      matchRate: matchedKeywords.length / Math.max(candidates.length, 1)
+    };
+  }
+
+  /**
    * Realiza el análisis del texto identificando keywords presentes
    * @param {string} text - Texto original
    * @param {Array} candidates - Keywords candidatas
    * @param {Object} keywordData - Datos de volumen de keywords
+   * @param {Object} studyEnrichment - Datos de enriquecimiento del estudio (opcional)
    * @returns {Object} Análisis del texto
    */
-  performTextAnalysis(text, candidates, keywordData) {
+  performTextAnalysis(text, candidates, keywordData, studyEnrichment = null) {
     const lowerText = text.toLowerCase();
     const foundKeywords = [];
     const highlightedText = text;
@@ -149,12 +224,74 @@ export class ParagraphAnalyzer {
    * Genera sugerencias basadas en el análisis
    * @param {Object} analysis - Análisis del texto
    * @param {Object} keywordData - Datos de keywords
+   * @param {Object} studyEnrichment - Datos de enriquecimiento del estudio (opcional)
    * @returns {Array} Array de sugerencias
    */
-  generateSuggestions(analysis, keywordData) {
+  generateSuggestions(analysis, keywordData, studyEnrichment = null) {
     const suggestions = [];
 
-    // Sugerir keywords de alto volumen no utilizadas
+    // Si hay datos del estudio, priorizar esas sugerencias
+    if (studyEnrichment) {
+      // Sugerir keywords del estudio que no están en el texto
+      if (studyEnrichment.recommendedKeywords.length > 0) {
+        suggestions.push({
+          type: 'study_recommendations',
+          title: 'Keywords recomendadas del estudio SEO',
+          description: 'Estas keywords de tu estudio SEO tienen alto volumen y podrían mejorar el párrafo:',
+          keywords: studyEnrichment.recommendedKeywords,
+          priority: 'high'
+        });
+      }
+
+      // Mostrar coincidencias con el estudio
+      if (studyEnrichment.matchedKeywords.length > 0) {
+        const exactMatches = studyEnrichment.matchedKeywords.filter(mk => mk.isExactMatch);
+        const partialMatches = studyEnrichment.matchedKeywords.filter(mk => !mk.isExactMatch);
+        
+        if (exactMatches.length > 0) {
+          suggestions.push({
+            type: 'study_matches',
+            title: 'Keywords del estudio encontradas',
+            description: `Excelente! Tu párrafo ya incluye ${exactMatches.length} keywords de tu estudio SEO:`,
+            keywords: exactMatches.map(mk => ({
+              keyword: mk.studyKeyword,
+              volume: mk.volume,
+              cpc: mk.cpc,
+              competition: mk.competition
+            })),
+            priority: 'info'
+          });
+        }
+        
+        if (partialMatches.length > 0) {
+          suggestions.push({
+            type: 'study_partial_matches',
+            title: 'Keywords relacionadas del estudio',
+            description: 'Tu párrafo contiene términos relacionados con estas keywords del estudio:',
+            keywords: partialMatches.map(mk => ({
+              keyword: mk.studyKeyword,
+              relatedTerm: mk.candidate,
+              volume: mk.volume,
+              cpc: mk.cpc,
+              competition: mk.competition
+            })),
+            priority: 'medium'
+          });
+        }
+      }
+
+      // Análisis de cobertura del estudio
+      if (studyEnrichment.matchRate < 0.2) {
+        suggestions.push({
+          type: 'study_coverage',
+          title: 'Baja cobertura del estudio SEO',
+          description: `Tu párrafo solo utiliza un ${Math.round(studyEnrichment.matchRate * 100)}% de las keywords de tu estudio. Considera incluir más términos relevantes del estudio.`,
+          priority: 'warning'
+        });
+      }
+    }
+
+    // Sugerir keywords de alto volumen no utilizadas (mantener funcionalidad original)
     const usedKeywords = new Set(analysis.foundKeywords.map(kw => kw.keyword));
     const availableHighVolumeKeywords = Object.entries(keywordData)
       .filter(([keyword, data]) => !usedKeywords.has(keyword) && (data.volume || 0) > 1000)
@@ -164,14 +301,15 @@ export class ParagraphAnalyzer {
     if (availableHighVolumeKeywords.length > 0) {
       suggestions.push({
         type: 'add_keywords',
-        title: 'Keywords de alto volumen recomendadas',
+        title: 'Keywords de alto volumen adicionales',
         description: 'Considera incluir estas keywords con alto volumen de búsqueda:',
         keywords: availableHighVolumeKeywords.map(([keyword, data]) => ({
           keyword,
           volume: data.volume,
           cpc: data.cpc,
           competition: data.competition
-        }))
+        })),
+        priority: 'medium'
       });
     }
 

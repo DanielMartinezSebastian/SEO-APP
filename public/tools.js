@@ -2,9 +2,37 @@
 
 // Paragraph Analyzer functionality
 let currentAnalysis = null;
+let selectedStudy = null;
 
-// Character counter for textarea
+// Initialize page when DOM loads
 document.addEventListener('DOMContentLoaded', function() {
+    // Load available studies on page load
+    loadAvailableStudies();
+    
+    // Check for pre-selected study from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const preSelectedStudy = urlParams.get('study');
+    if (preSelectedStudy) {
+        // Wait for studies to load, then select the specified study
+        setTimeout(() => {
+            const selector = document.getElementById('studySelector');
+            if (selector) {
+                // Try to find and select the study
+                for (let i = 0; i < selector.options.length; i++) {
+                    if (selector.options[i].value === preSelectedStudy) {
+                        selector.value = preSelectedStudy;
+                        onStudyChange();
+                        
+                        // Show a notification that the study was pre-selected
+                        showSuccessMessage(`Estudio "${preSelectedStudy}" seleccionado automáticamente desde el reporte.`);
+                        break;
+                    }
+                }
+            }
+        }, 1000);
+    }
+    
+    // Character counter for textarea
     const textarea = document.getElementById('paragraphText');
     const charCount = document.getElementById('charCount');
     
@@ -26,13 +54,370 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 /**
+ * Load available SEO studies from the API
+ */
+async function loadAvailableStudies() {
+    try {
+        const response = await fetch('/api/seo/reports');
+        const data = await response.json();
+        
+        if (data.success) {
+            populateStudySelector(data.reports);
+        } else {
+            console.error('Error loading studies:', data.error);
+            showError('Error al cargar los estudios SEO disponibles');
+        }
+    } catch (error) {
+        console.error('Error fetching studies:', error);
+        showError('Error de conexión al cargar estudios');
+    }
+}
+
+/**
+ * Populate the study selector dropdown
+ */
+function populateStudySelector(reports) {
+    const selector = document.getElementById('studySelector');
+    if (!selector) return;
+    
+    // Clear existing options except the first one
+    while (selector.children.length > 1) {
+        selector.removeChild(selector.lastChild);
+    }
+    
+    // Add reports as options
+    reports.forEach(report => {
+        const option = document.createElement('option');
+        option.value = report.filename;
+        option.textContent = `${report.timestamp} (${report.filename})`;
+        selector.appendChild(option);
+    });
+    
+    // Update UI based on available studies
+    updateStudySelectorUI(reports.length > 0);
+}
+
+/**
+ * Update study selector UI based on availability
+ */
+function updateStudySelectorUI(hasStudies) {
+    const selector = document.getElementById('studySelector');
+    const toolCards = document.querySelectorAll('.tool-card:not(.coming-soon)');
+    
+    if (!hasStudies) {
+        // Disable selector and show message
+        if (selector) {
+            selector.disabled = true;
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'No hay estudios SEO disponibles';
+            selector.appendChild(option);
+        }
+        
+        // Show message in tool cards
+        toolCards.forEach(card => {
+            const button = card.querySelector('.tool-button');
+            if (button) {
+                button.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Requiere estudio SEO';
+                button.disabled = true;
+                button.classList.add('disabled');
+            }
+        });
+    } else {
+        // Enable selector
+        if (selector) {
+            selector.disabled = false;
+        }
+        
+        // Reset tool cards
+        toolCards.forEach(card => {
+            const button = card.querySelector('.tool-button');
+            if (button && !button.dataset.originalContent) {
+                button.dataset.originalContent = button.innerHTML;
+            }
+        });
+    }
+}
+
+/**
+ * Handle study selection change
+ */
+async function onStudyChange() {
+    const selector = document.getElementById('studySelector');
+    const selectedStudyInfo = document.getElementById('selectedStudyInfo');
+    
+    if (!selector || !selectedStudyInfo) return;
+    
+    const selectedFilename = selector.value;
+    
+    if (!selectedFilename) {
+        // No study selected
+        selectedStudy = null;
+        selectedStudyInfo.style.display = 'none';
+        updateToolsAvailability(false);
+        return;
+    }
+    
+    try {
+        // Load study details
+        const response = await fetch(`/api/seo/report/${selectedFilename}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            selectedStudy = {
+                filename: selectedFilename,
+                data: data.data
+            };
+            
+            // Show study info
+            displaySelectedStudyInfo(data.data);
+            selectedStudyInfo.style.display = 'block';
+            updateToolsAvailability(true);
+        } else {
+            showError('Error al cargar el estudio seleccionado');
+            selectedStudy = null;
+            selectedStudyInfo.style.display = 'none';
+            updateToolsAvailability(false);
+        }
+    } catch (error) {
+        console.error('Error loading study:', error);
+        showError('Error de conexión al cargar el estudio');
+        selectedStudy = null;
+        selectedStudyInfo.style.display = 'none';
+        updateToolsAvailability(false);
+    }
+}
+
+/**
+ * Display information about the selected study
+ */
+function displaySelectedStudyInfo(studyData) {
+    const selectedStudyInfo = document.getElementById('selectedStudyInfo');
+    if (!selectedStudyInfo) return;
+    
+    const metadata = studyData.metadata || {};
+    const summary = studyData.summary || [];
+    
+    const keywords = metadata.keywords || summary.map(item => item.keyword).slice(0, 10);
+    const keywordsCount = summary.length;
+    const totalVolume = summary.reduce((sum, item) => sum + (item.searchVolume || 0), 0);
+    
+    selectedStudyInfo.innerHTML = `
+        <h3><i class="fas fa-check-circle"></i> Estudio SEO Seleccionado</h3>
+        <div class="study-meta">
+            <div class="study-meta-item">
+                <span class="study-meta-label">Fecha:</span>
+                <span class="study-meta-value">${metadata.timestamp || 'No disponible'}</span>
+            </div>
+            <div class="study-meta-item">
+                <span class="study-meta-label">País:</span>
+                <span class="study-meta-value">${metadata.country || 'No especificado'}</span>
+            </div>
+            <div class="study-meta-item">
+                <span class="study-meta-label">Keywords:</span>
+                <span class="study-meta-value">${keywordsCount}</span>
+            </div>
+            <div class="study-meta-item">
+                <span class="study-meta-label">Volumen total:</span>
+                <span class="study-meta-value">${formatNumber(totalVolume)}</span>
+            </div>
+        </div>
+        <div class="study-keywords-preview">
+            <h4>Keywords principales:</h4>
+            <div class="keywords-preview-list">
+                ${keywords.slice(0, 8).map(keyword => 
+                    `<span class="keyword-preview-tag">${keyword}</span>`
+                ).join('')}
+                ${keywords.length > 8 ? `<span class="keyword-preview-tag">+${keywords.length - 8} más</span>` : ''}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Update tools availability based on study selection
+ */
+function updateToolsAvailability(hasStudy) {
+    const toolCards = document.querySelectorAll('.tool-card:not(.coming-soon)');
+    
+    toolCards.forEach(card => {
+        const button = card.querySelector('.tool-button');
+        if (!button) return;
+        
+        if (hasStudy) {
+            // Enable tool
+            button.disabled = false;
+            button.classList.remove('disabled');
+            if (button.dataset.originalContent) {
+                button.innerHTML = button.dataset.originalContent;
+            }
+        } else {
+            // Disable tool
+            button.disabled = true;
+            button.classList.add('disabled');
+            button.innerHTML = '<i class="fas fa-database"></i> Selecciona un estudio SEO';
+        }
+    });
+}
+
+/**
+ * Format number with thousand separators
+ */
+function formatNumber(num) {
+    if (num === null || num === undefined) return '0';
+    return num.toLocaleString('es-ES');
+}
+
+/**
+ * Show success message
+ */
+function showSuccessMessage(message) {
+    // Create a simple toast notification
+    const toast = document.createElement('div');
+    toast.className = 'success-toast';
+    toast.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        <span>${message}</span>
+    `;
+    
+    // Add toast styles if they don't exist
+    if (!document.querySelector('#success-toast-styles')) {
+        const style = document.createElement('style');
+        style.id = 'success-toast-styles';
+        style.textContent = `
+            .success-toast {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--success-color, #10b981);
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 0.5rem;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-weight: 500;
+                animation: slideInRight 0.3s ease;
+                max-width: 400px;
+            }
+            
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(toast);
+    
+    // Remove toast after 4 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 4000);
+}
+
+/**
+ * Show error message
+ */
+function showError(message) {
+    // Create a simple toast notification
+    const toast = document.createElement('div');
+    toast.className = 'error-toast';
+    toast.innerHTML = `
+        <i class="fas fa-exclamation-triangle"></i>
+        <span>${message}</span>
+    `;
+    
+    // Add toast styles if they don't exist
+    if (!document.querySelector('#toast-styles')) {
+        const style = document.createElement('style');
+        style.id = 'toast-styles';
+        style.textContent = `
+            .error-toast {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: var(--error-color);
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 0.5rem;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                gap: 0.75rem;
+                font-weight: 500;
+                animation: slideInRight 0.3s ease;
+            }
+            
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(toast);
+    
+    // Remove toast after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+
+/**
  * Opens the paragraph analyzer modal
  */
 function openParagraphAnalyzer() {
+    // Check if a study is selected
+    if (!selectedStudy) {
+        showError('Por favor, selecciona un estudio SEO antes de usar las herramientas');
+        return;
+    }
+    
     const modal = document.getElementById('paragraphModal');
     if (modal) {
         modal.style.display = 'block';
         document.body.style.overflow = 'hidden';
+        
+        // Update modal title to show selected study
+        const modalHeader = modal.querySelector('.modal-header h2');
+        if (modalHeader && selectedStudy) {
+            modalHeader.innerHTML = `
+                <i class="fas fa-paragraph"></i> 
+                Analizador de Párrafos
+                <small style="font-size: 0.7em; color: var(--text-muted); margin-left: 1rem;">
+                    (Estudio: ${selectedStudy.filename})
+                </small>
+            `;
+        }
+        
+        // Pre-fill country from selected study if available
+        const country = document.getElementById('analysisCountry');
+        const studyCountry = selectedStudy?.data?.metadata?.country;
+        if (country && studyCountry) {
+            country.value = studyCountry;
+        }
         
         // Focus on textarea
         setTimeout(() => {
@@ -122,15 +507,31 @@ async function analyzeParagraph() {
         if (results) results.style.display = 'none';
         
         // Make API request
+        const requestBody = {
+            paragraph: paragraph,
+            country: country.value
+        };
+        
+        // Include selected study context if available
+        if (selectedStudy) {
+            requestBody.studyContext = {
+                filename: selectedStudy.filename,
+                keywords: selectedStudy.data.summary?.map(item => ({
+                    keyword: item.keyword,
+                    volume: item.searchVolume,
+                    competition: item.competition,
+                    cpc: item.cpc
+                })) || [],
+                metadata: selectedStudy.data.metadata
+            };
+        }
+        
         const response = await fetch('/api/seo/analyze-paragraph', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                paragraph: paragraph,
-                country: country.value
-            })
+            body: JSON.stringify(requestBody)
         });
         
         const data = await response.json();
@@ -202,6 +603,24 @@ function updateAnalysisStats(analysis) {
     
     if (highVolumeCount) {
         highVolumeCount.textContent = analysis.analysis.highVolumeKeywords?.length || 0;
+    }
+    
+    // Add study context information if available
+    if (analysis.studyContext) {
+        const statsGrid = document.querySelector('.stats-grid');
+        if (statsGrid && !document.getElementById('study-context-info')) {
+            const studyContextCard = document.createElement('div');
+            studyContextCard.className = 'stat-card study-context-card';
+            studyContextCard.id = 'study-context-info';
+            studyContextCard.innerHTML = `
+                <i class="fas fa-database"></i>
+                <div class="stat-info">
+                    <span class="stat-label">Coincidencias con estudio</span>
+                    <span class="stat-value">${analysis.studyContext.matchedKeywords?.length || 0}</span>
+                </div>
+            `;
+            statsGrid.appendChild(studyContextCard);
+        }
     }
 }
 
@@ -278,8 +697,72 @@ function displaySuggestions(analysis) {
     
     const suggestionsHTML = suggestions.map(suggestion => {
         let content = '';
+        let suggestionClass = 'suggestion-item';
+        let iconClass = 'fas fa-lightbulb';
+        
+        // Add priority-based styling
+        if (suggestion.priority === 'high') {
+            suggestionClass += ' suggestion-high-priority';
+            iconClass = 'fas fa-star';
+        } else if (suggestion.priority === 'warning') {
+            suggestionClass += ' suggestion-warning';
+            iconClass = 'fas fa-exclamation-triangle';
+        } else if (suggestion.priority === 'info') {
+            suggestionClass += ' suggestion-info';
+            iconClass = 'fas fa-info-circle';
+        }
         
         switch (suggestion.type) {
+            case 'study_recommendations':
+                content = `
+                    <div class="suggestion-keywords study-keywords">
+                        ${suggestion.keywords.map(kw => `
+                            <div class="suggestion-keyword study-keyword">
+                                <span class="keyword-name">${kw.keyword}</span>
+                                <span class="keyword-volume">Vol: ${(kw.volume || 0).toLocaleString()}</span>
+                                <span class="keyword-source">Del estudio SEO</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                break;
+                
+            case 'study_matches':
+                content = `
+                    <div class="suggestion-keywords study-matches">
+                        ${suggestion.keywords.map(kw => `
+                            <div class="suggestion-keyword matched-keyword">
+                                <span class="keyword-name">${kw.keyword}</span>
+                                <span class="keyword-volume">Vol: ${(kw.volume || 0).toLocaleString()}</span>
+                                <span class="keyword-match-badge">✓ En el estudio</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                break;
+                
+            case 'study_partial_matches':
+                content = `
+                    <div class="suggestion-keywords study-partial-matches">
+                        ${suggestion.keywords.map(kw => `
+                            <div class="suggestion-keyword partial-match-keyword">
+                                <span class="keyword-name">${kw.keyword}</span>
+                                <span class="keyword-related">Relacionado: "${kw.relatedTerm}"</span>
+                                <span class="keyword-volume">Vol: ${(kw.volume || 0).toLocaleString()}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                break;
+                
+            case 'study_coverage':
+                content = `
+                    <div class="coverage-info">
+                        <p class="coverage-text">${suggestion.description}</p>
+                    </div>
+                `;
+                break;
+            
             case 'add_keywords':
                 content = `
                     <div class="suggestion-keywords">
@@ -328,9 +811,9 @@ function displaySuggestions(analysis) {
         }
         
         return `
-            <div class="suggestion-item">
+            <div class="${suggestionClass}">
                 <div class="suggestion-title">
-                    <i class="fas fa-lightbulb"></i>
+                    <i class="${iconClass}"></i>
                     ${suggestion.title}
                 </div>
                 <div class="suggestion-description">

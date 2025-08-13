@@ -38,6 +38,31 @@
         </nav>
 
         <main>
+            <!-- Selector de Estudio SEO -->
+            <section class="study-selector-section">
+                <div class="study-selector-container">
+                    <div class="study-selector-header">
+                        <h2><i class="fas fa-database"></i> Estudio SEO Activo</h2>
+                        <p>Selecciona un estudio SEO para usar con las herramientas</p>
+                    </div>
+                    <div class="study-selector-form">
+                        <div class="form-group">
+                            <label for="studySelector">Estudio SEO:</label>
+                            <select id="studySelector" onchange="onStudyChange()">
+                                <option value="">-- Seleccionar estudio SEO --</option>
+                                <!-- Se llenará dinámicamente -->
+                            </select>
+                            <button id="refreshStudies" class="btn-secondary" onclick="loadAvailableStudies()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                        <div id="selectedStudyInfo" class="selected-study-info" style="display: none;">
+                            <!-- Se mostrará información del estudio seleccionado -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Sección de Herramientas -->
             <section class="tools-grid">
                 <div class="tool-card">

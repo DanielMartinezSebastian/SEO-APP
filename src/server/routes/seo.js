@@ -398,7 +398,7 @@ router.delete('/report/:filename', async (req, res) => {
 // POST /api/seo/analyze-paragraph - Analizar párrafo para optimización de keywords
 router.post('/analyze-paragraph', async (req, res) => {
   try {
-    const { paragraph, country = 'ES' } = req.body;
+    const { paragraph, country = 'ES', studyContext = null } = req.body;
 
     if (!paragraph || typeof paragraph !== 'string' || paragraph.trim().length === 0) {
       return res.status(400).json({
@@ -409,8 +409,8 @@ router.post('/analyze-paragraph', async (req, res) => {
 
     const analyzer = new ParagraphAnalyzer();
     
-    // Analizar el párrafo
-    const analysis = await analyzer.analyzeParagraph(paragraph, country);
+    // Analizar el párrafo con contexto del estudio si está disponible
+    const analysis = await analyzer.analyzeParagraph(paragraph, country, studyContext);
     
     // Generar HTML con keywords resaltadas
     const highlightedHTML = analyzer.generateHighlightedHTML(
