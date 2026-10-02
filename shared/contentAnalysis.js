@@ -46,7 +46,8 @@ function extractStructure(raw) {
     body.replace(/<a\b[^>]*href=["']?([^"'\s>]+)/gi, (_, href) => (links.push(href), ''));
     body.replace(/<img\b[^>]*>/gi, (tag) => {
       const alt = /alt=["']([^"']*)["']/i.exec(tag);
-      images.push({ alt: alt ? alt[1].trim() : '' });
+      // alt="" es la forma correcta de marcar una imagen decorativa: no es lo mismo que no llevar el atributo
+      images.push({ alt: alt ? alt[1].trim() : '', decorative: Boolean(alt) && alt[1].trim() === '' });
       return '';
     });
     body = body
@@ -258,10 +259,14 @@ export function analyzeContent({ text = '', keyword = '', title = '', metaDescri
       structure.links.length > 0 ? `${structure.links.length} enlaces.` : 'Sin enlaces. Enlazar a otras páginas del sitio y a fuentes ayuda a Google a situar el contenido.');
 
     if (structure.images.length > 0) {
-      const withoutAlt = structure.images.filter((image) => !image.alt).length;
+      const withoutAlt = structure.images.filter((image) => !image.alt && !image.decorative).length;
+      const decorative = structure.images.filter((image) => image.decorative).length;
+      const decorativeNote = decorative > 0 ? ` ${decorative === 1 ? 'Una lleva' : `${decorative} llevan`} alt="" (decorativas): es correcto si no aportan información; si muestran algo relevante, descríbelo.` : '';
       check('images-alt', 'Estructura', 'Texto alternativo de las imágenes', 1,
         withoutAlt === 0 ? 'ok' : 'warn',
-        withoutAlt === 0 ? `Las ${structure.images.length} imágenes tienen texto alternativo.` : `${withoutAlt} de ${structure.images.length} imágenes no tienen texto alternativo.`);
+        (withoutAlt === 0
+          ? (decorative === structure.images.length ? `Las ${structure.images.length} imágenes están marcadas como decorativas.` : `Ninguna de las ${structure.images.length} imágenes carece de atributo alt.`)
+          : `${withoutAlt} de ${structure.images.length} imágenes no llevan atributo alt.`) + (decorative === structure.images.length ? decorativeNote.replace(/^ \S+ \S+ alt="" \(decorativas\):/, ' alt=""') : decorativeNote));
     }
   } else {
     skip('subheadings', 'Estructura', 'Encabezados, enlaces e imágenes',

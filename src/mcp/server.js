@@ -219,6 +219,16 @@ export function createMcpServer() {
     }
   }, tool(async ({ project, ...input }) => json((await projects.addTarget(await projects.resolveProject(project), input)).view)));
 
+  server.registerTool('update_target', {
+    title: 'Cambiar un target',
+    description: 'Cambia un target ya creado: su página de aterrizaje (ruta como /servicios/x o URL), su público o su nombre. Indicar la página a mano hace que sus keywords principales cuenten como cubiertas aunque la URL no las nombre.',
+    inputSchema: { project: PROJECT, target: z.string().describe('Nombre o identificador del target'), name: z.string().optional(), audience: z.string().optional(), page: z.string().optional() }
+  }, tool(async ({ project, target, ...changes }) => {
+    const id = await projects.resolveProject(project);
+    const found = await projects.findTarget(id, target);
+    return json((await projects.updateTarget(id, found.id, Object.fromEntries(Object.entries(changes).filter(([, value]) => value !== undefined)))).view);
+  }));
+
   server.registerTool('project_overview', {
     title: 'Vista del proyecto',
     description: 'Combina los targets del proyecto: prioridad de cada uno (demanda 40 %, facilidad 40 %, valor comercial 20 %), página de aterrizaje detectada o ausente, keywords repetidas entre targets (riesgo de canibalización) con el target al que asignarlas, páginas reclamadas por varios targets, calendario conjunto, conclusiones y plan de acción. format=markdown devuelve el informe del proyecto.',

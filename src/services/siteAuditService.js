@@ -1,7 +1,7 @@
 // Auditoría de sitio a partir de su sitemap: qué declara, qué responde cada URL y qué problemas se repiten.
 // Vale para un sitio publicado y para uno en desarrollo (localhost, red privada) cuando quien llama lo permite.
 import { parse } from 'node-html-parser';
-import { assertPublicUrl, fetchText } from './pageAuditService.js';
+import { assertPublicUrl, fetchText, stripChrome } from './pageAuditService.js';
 import { ValidationError, isLocalSite, siteOrigin } from '../utils/validation.js';
 
 const MAX_SITEMAPS = 8;
@@ -130,7 +130,7 @@ async function inspectPage(listedUrl, { origin, local, allowLocal }) {
   const scripts = (page.body.match(/<script\b/gi) || []).length;
   const body = root.querySelector('main') || root.querySelector('body') || root;
   const h1 = root.querySelectorAll('h1').length;
-  body.querySelectorAll('script, style, noscript, nav, header, footer, aside, form, svg, iframe').forEach((node) => node.remove());
+  stripChrome(body);
   const words = (body.text.match(/[\p{L}\p{N}]+/gu) || []).length;
 
   let canonicalElsewhere = false;

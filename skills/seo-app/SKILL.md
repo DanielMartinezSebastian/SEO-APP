@@ -54,6 +54,10 @@ seo project site            # sitúa cada target en las páginas del sitio
 seo project show --json
 ```
 
+Si la página de un target ya existe y su URL no nombra el servicio, indícala: `--page /ruta` al crearlo o
+`seo project set-target "Nombre" --page /ruta` después. En Git Bash sobre Windows las rutas que empiezan por `/`
+se convierten solas (la CLI lo deshace; si aun así ves `C:/…`, antepón `MSYS_NO_PATHCONV=1`).
+
 Reglas para elegir keywords: de 2 a 6 por estudio o target; las que escribiría **ese público**, no el nombre
 interno del servicio (quien tiene un problema busca el problema); en el idioma y país del mercado
 (`--country ES --language es`). Cada keyword tarda unos 5 segundos.
@@ -124,6 +128,8 @@ Repite la fase 1 y la 5 contra el dominio real: en local no se evalúan HTTPS ni
 
 ## Lo que no debes hacer
 
+- **No confundas huecos.** `gaps` son keywords con demanda y sin página; `gapsWithoutData` no tienen dato de
+  volumen: no propongas páginas para ellas sin avisar de que no se sabe si alguien las busca.
 - **No inventes datos.** Volumen, competencia y tendencia salen de la herramienta; si no hay dato, dilo.
 - **No prometas posiciones ni tráfico.** «Búsquedas» es una media mensual estimada; «competencia» refleja la
   disputa entre anunciantes, no la dificultad orgánica; el índice de Trends no es volumen.

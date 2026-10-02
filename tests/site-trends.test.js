@@ -191,3 +191,34 @@ test('buildTrendInsights cruza la tendencia con el estudio y alimenta el plan', 
   assert(plan.some((task) => task.area === 'Calendario'));
   assert(plan.some((task) => task.title.includes('consultas en auge')));
 });
+
+// ---------- Regresiones encontradas auditando un sitio real ----------
+
+test('el contenido de <main> incluye su cabecera y el texto de sus formularios', async () => {
+  const { parse } = await import('node-html-parser');
+  const { stripChrome } = await import('../src/services/pageAuditService.js');
+  const html = '<body><header>Menú del sitio</header><main><nav>Inicio / Contacto</nav><header><h1>Contacto</h1><p>Entradilla de la página</p></header><form><label>Tu nombre</label><input name="n"><button>Enviar</button></form><aside>Respondo en un día</aside></main><footer>Pie</footer></body>';
+  const main = stripChrome(parse(html).querySelector('main'));
+  assert.strictEqual(main.text.replace(/\s+/g, ' ').trim(), 'ContactoEntradilla de la páginaTu nombreRespondo en un día');
+  // sin <main>, la cabecera y el pie del sitio no son contenido
+  const body = stripChrome(parse('<body><header>Menú</header><p>Texto</p><footer>Pie</footer></body>').querySelector('body'));
+  assert.strictEqual(body.text.trim(), 'Texto');
+});
+
+test('una keyword «similar» ajena al tema no cuenta en los totales', async () => {
+  const { buildInsights } = await import('../shared/insights.js');
+  const insights = buildInsights([{
+    keyword: 'core web vitals', country: 'ES', language: 'es', suggestions: [], ideas: [], errors: [],
+    keywordData: { 'core web vitals': { search_volume: 1000, competition: 0.2, cpc: 1, similar_keywords: [
+      { keyword: 'speedtest', search_volume: 368000, cpc: 0.1 },
+      { keyword: 'web vitals google', search_volume: 9000, cpc: 0.5 },
+      { keyword: 'lighthouse', search_volume: 3000, cpc: 0.5 }
+    ] } }
+  }]);
+  assert.strictEqual(insights.keywords.find((entry) => entry.keyword === 'speedtest').offTopic, true);
+  // comparte palabras con la principal, o no la supera por tanto: se queda
+  assert.strictEqual(insights.keywords.find((entry) => entry.keyword === 'web vitals google').offTopic, false);
+  assert.strictEqual(insights.keywords.find((entry) => entry.keyword === 'lighthouse').offTopic, false);
+  assert.strictEqual(insights.totals.volume, 13000);
+  assert(insights.recommendations.some((item) => item.title.includes('ajenas al tema')));
+});

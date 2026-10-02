@@ -125,6 +125,9 @@ function parseTarget(input, current = {}) {
     page: input?.page !== undefined ? text(input.page, 300, 'La página') : current.page || ''
   };
   if (!target.name) throw new ValidationError('El target necesita un nombre (el público o la línea de negocio)');
+  if (target.page && !/^(\/|https?:\/\/)/i.test(target.page)) {
+    throw new ValidationError(`La página del target debe ser una ruta (/servicios/x) o una URL; se recibió «${target.page}»`);
+  }
   return target;
 }
 
@@ -173,6 +176,15 @@ export async function updateTarget(id, targetId, input) {
   };
   await write(project);
   return getProject(id);
+}
+
+// Localiza un target por su identificador o por su nombre
+export async function findTarget(id, reference) {
+  const project = await read(id);
+  const wanted = String(reference || '').toLowerCase();
+  const target = project.targets.find((item) => item.id === reference || item.name.toLowerCase() === wanted);
+  if (!target) throw new NotFoundError(`Target no encontrado: «${reference}». Targets: ${project.targets.map((item) => item.name).join(', ') || 'ninguno'}`);
+  return target;
 }
 
 // Quita el target del proyecto; sus estudios se conservan

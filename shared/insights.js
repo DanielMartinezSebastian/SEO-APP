@@ -121,12 +121,25 @@ export function collectKeywords(report) {
   // Si las keywords principales nombran un lugar, el estudio es de esa zona: una sugerencia de otra ciudad
   // («fontanero urgente sevilla» en un estudio de Madrid) no es una oportunidad para este cliente.
   const studyPlaces = new Set(items.flatMap((item) => placesIn(item.keyword)));
+  // La fuente devuelve a veces «similares» que no tienen que ver («speedtest» para «core web vitals») y que, por
+  // su tamaño, se comerían el estudio. Una similar que no comparte ninguna palabra con las keywords principales
+  // con las keywords principales (o solo una suelta entre varias, como «web») y multiplica por más de cinco la
+  // demanda de la suya se considera ajena al tema.
+  const mainStems = new Set(items.flatMap((item) => contentTokens(item.keyword).map(stem)));
+  const mainVolume = new Map(items.map((item) => [item.keyword, numberOrNull(mainData(item).search_volume)]));
+  const sharedShare = (keyword) => {
+    const tokens = contentTokens(keyword);
+    return tokens.length ? tokens.filter((token) => mainStems.has(stem(token))).length / tokens.length : 0;
+  };
+  const offTopic = (entry) => entry.type === 'similar' && entry.volume !== null && sharedShare(entry.keyword) < 0.5 &&
+    entry.volume > 5 * Math.max(mainVolume.get(entry.parent) || 0, 100);
   return [...byKeyword.values()].map((entry) => {
     const places = placesIn(entry.keyword);
     return {
       ...entry,
       parentCompetition: mainCompetition.get(entry.parent) ?? null,
-      offTarget: studyPlaces.size > 0 && places.length > 0 && !places.some((place) => studyPlaces.has(place))
+      offTopic: offTopic(entry),
+      offTarget: offTopic(entry) || (studyPlaces.size > 0 && places.length > 0 && !places.some((place) => studyPlaces.has(place)))
     };
   });
 }
@@ -306,7 +319,17 @@ function buildRecommendations({ keywords, withVolume, quickWins, intents, cluste
     });
   }
 
-  const offTarget = keywords.filter((entry) => entry.offTarget);
+  const unrelated = keywords.filter((entry) => entry.offTopic);
+  if (unrelated.length > 0) {
+    recommendations.push({
+      level: 'info',
+      title: 'Keywords ajenas al tema, descartadas',
+      text: `${plural(unrelated.length, 'keyword «similar» no comparte', 'keywords «similares» no comparten')} ninguna palabra con las principales y ${unrelated.length === 1 ? 'tiene' : 'tienen'} una demanda muy superior (por ejemplo ${unrelated.slice(0, 3).map((entry) => `«${entry.keyword}»`).join(', ')}). ` +
+        'La fuente las da como relacionadas, pero son otra búsqueda: siguen en el listado y no cuentan en los totales ni como oportunidad.'
+    });
+  }
+
+  const offTarget = keywords.filter((entry) => entry.offTarget && !entry.offTopic);
   if (offTarget.length > 0) {
     recommendations.push({
       level: 'info',

@@ -56,14 +56,23 @@ export function buildProjectView(project, studies, now = new Date()) {
     const top = insights.opportunities.slice(0, 10);
     const trends = mergeTrends(own);
     const trendInsights = trends ? buildTrendInsights(report, trends, now) : null;
-    const map = urls.length ? mapKeywords(keywordsToPlace(insights), urls) : [];
-    const mainMap = map.filter((entry) => mains.some((main) => main.keyword === entry.keyword));
+    const detectedMap = urls.length ? mapKeywords(keywordsToPlace(insights), urls) : [];
+    const mainMap = detectedMap.filter((entry) => mains.some((main) => main.keyword === entry.keyword));
 
     // Página de aterrizaje: la que se indicó a mano o, si no, la que cubre más keywords principales
     const counts = new Map();
     mainMap.filter((entry) => entry.url).forEach((entry) => counts.set(entry.url, (counts.get(entry.url) || 0) + 1));
-    const detected = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || null;
-    const assigned = target.page ? urls.find((url) => pathOf(url).replace(/\/$/, '') === pathOf(target.page).replace(/\/$/, '')) || target.page : null;
+    // una coincidencia suelta no hace de una página la del target: debe cubrir al menos la mitad de sus principales
+    const [bestUrl, bestCount] = [...counts.entries()].sort((a, b) => b[1] - a[1])[0] || [null, 0];
+    const detected = bestUrl && bestCount / mains.length >= 0.5 ? bestUrl : null;
+    // rutas guardadas antes de que la CLI deshiciera la conversión de Git Bash (C:/Program Files/Git/servicios/x)
+    const wanted = (target.page || '').replace(/^[A-Za-z]:[\\/].*?[\\/]Git(?=[\\/])/, '').replace(/\\/g, '/');
+    const assigned = wanted ? urls.find((url) => pathOf(url).replace(/\/$/, '') === pathOf(wanted).replace(/\/$/, '')) || wanted : null;
+
+    // Con página asignada a mano, las keywords principales del target son suyas aunque la URL no las nombre
+    const landing = assigned || detected;
+    const map = detectedMap.map((entry) => (assigned && !entry.url && mains.some((main) => main.keyword === entry.keyword) ? { ...entry, url: assigned, assigned: true } : entry));
+    const volumeOf = new Map(insights.keywords.map((entry) => [entry.keyword, entry.volume]));
 
     return {
       id: target.id,
@@ -83,10 +92,12 @@ export function buildProjectView(project, studies, now = new Date()) {
       keywordSet: new Set(insights.keywords.map((entry) => normalize(entry.keyword))),
       keywordVolumes: new Map(insights.keywords.map((entry) => [normalize(entry.keyword), entry])),
       map,
-      page: assigned || detected,
+      page: landing,
       pageSource: assigned ? 'assigned' : detected ? 'detected' : null,
       coverage: map.length ? Math.round((map.filter((entry) => entry.url).length / map.length) * 100) : null,
-      gaps: map.filter((entry) => !entry.url).map((entry) => entry.keyword),
+      // huecos con demanda conocida; los que no tienen dato de volumen van aparte: no se sabe si alguien los busca
+      gaps: map.filter((entry) => !entry.url && volumeOf.get(entry.keyword) !== null).map((entry) => entry.keyword),
+      gapsWithoutData: map.filter((entry) => !entry.url && volumeOf.get(entry.keyword) === null).map((entry) => entry.keyword),
       trends: trendInsights,
       report,
       audits: own.flatMap((entry) => entry.study.audits || []),
@@ -236,7 +247,8 @@ export function buildProjectView(project, studies, now = new Date()) {
   ranked.filter((target) => target.report.length > 0).forEach((target) => {
     const own = buildActionPlan(target.report, { audits: target.audits, pageAudits: target.pageAudits, keywordMap: target.map, trendInsights: target.trends })
       // si al target le falta la página de aterrizaje, esa tarea ya está arriba
-      .filter((task) => !(noPage.includes(target) && task.title.startsWith('Crear la página de')))
+      // y si ya tiene página (un target = una página), no se propone otra por cada keyword principal
+      .filter((task) => !((noPage.includes(target) || target.page) && task.title.startsWith('Crear la página de')))
       .filter((task) => task.impact === 'alto' || task.area === 'Calendario').slice(0, 4);
     own.forEach((task) => push({ ...task, target: target.name, targetPriority: target.priority }));
   });

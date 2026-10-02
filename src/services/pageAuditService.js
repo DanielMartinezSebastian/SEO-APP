@@ -76,6 +76,19 @@ export const isLocalUrl = (url) => {
   return host === 'localhost' || /\.(local|localhost|test)$/i.test(host) || (net.isIP(host) !== 0 && isPrivateAddress(host));
 };
 
+// Deja en el nodo de contenido solo lo que se lee como texto de la página. Dentro de <main> o <article>, una
+// cabecera (<header>), un lateral (<aside>) o un pie son parte del contenido: muchas plantillas ponen ahí el H1,
+// la entradilla o los datos del servicio. Fuera de ellos (cuando no hay <main>) son la cabecera y el pie del sitio.
+// De los formularios se quitan los controles y se conserva el texto que los acompaña.
+export function stripChrome(body) {
+  const scoped = ['main', 'article'].includes(String(body.rawTagName || '').toLowerCase());
+  const selector = scoped
+    ? 'script, style, noscript, svg, iframe, nav, input, select, textarea, button, datalist'
+    : 'script, style, noscript, svg, iframe, nav, header, footer, aside, input, select, textarea, button, datalist';
+  body.querySelectorAll(selector).forEach((node) => node.remove());
+  return body;
+}
+
 export async function fetchText(url, { maxBytes = MAX_HTML_BYTES, allowLocal = false } = {}) {
   const started = Date.now();
   const response = await axios.get(url.toString(), {
@@ -293,7 +306,7 @@ export async function auditUrl(rawUrl, { keyword = '', relatedKeywords = [], lan
       return false;
     }
   });
-  body.querySelectorAll('script, style, noscript, nav, header, footer, aside, form, svg, iframe').forEach((node) => node.remove());
+  stripChrome(body);
 
   // se cuentan en el HTML original: del cuerpo ya se han quitado para medir solo el texto
   const scripts = (page.body.match(/<script\b/gi) || []).length;

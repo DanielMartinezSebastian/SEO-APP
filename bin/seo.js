@@ -29,6 +29,8 @@ Proyectos (un sitio con varios targets: públicos o líneas de negocio)
   seo project new "Nombre" [--site dominio|localhost:3000 --client "…"]
   seo project target [proyecto] "Nombre del target" --keywords "kw1, kw2" [--audience "a quién va" --page /ruta]
       Crea el estudio del target (o enlaza uno existente con --study archivo)
+  seo project set-target [proyecto] "Nombre" [--page /ruta --audience "…" --name "Nuevo nombre"]
+      Cambia un target ya creado (su página de aterrizaje, su público o su nombre)
   seo project show [proyecto]              Prioridad de targets, solapes, páginas, conclusiones
   seo project plan [proyecto]              Plan de acción conjunto
   seo project site [proyecto] [--pages 40] Audita el sitio por su sitemap y sitúa cada target en sus páginas
@@ -113,6 +115,9 @@ const auditText = (result, heading) => [
 ].join('\n');
 
 const study = (reference) => studies.resolveFilename(reference);
+
+// Git Bash en Windows convierte un argumento como /servicios/x en C:/Program Files/Git/servicios/x: se deshace
+const pagePath = (value) => value.replace(/^[A-Za-z]:[\\/].*?[\\/]Git(?=[\\/])/, '').replace(/\\/g, '/');
 
 async function readInput(source) {
   if (!source || source === '-') {
@@ -199,10 +204,17 @@ const commands = {
       const keywords = typeof flags.keywords === 'string' ? flags.keywords.split(',').map((keyword) => keyword.trim()).filter(Boolean) : [];
       if (keywords.length) info(`Creando el estudio del target (${keywords.length} keywords, unos ${keywords.length * 5} s)…`);
       const result = await projects.addTarget(await projects.resolveProject(reference), {
-        name, audience: typeof flags.audience === 'string' ? flags.audience : undefined, page: typeof flags.page === 'string' ? flags.page : undefined,
+        name, audience: typeof flags.audience === 'string' ? flags.audience : undefined, page: typeof flags.page === 'string' ? pagePath(flags.page) : undefined,
         keywords, studies: typeof flags.study === 'string' ? [await study(flags.study)] : [], country: typeof flags.country === 'string' ? flags.country : undefined, language: typeof flags.language === 'string' ? flags.language : undefined
       });
       return emit(result, showView);
+    }
+    if (action === 'set-target') {
+      const [reference, name] = args.length >= 2 ? args : [undefined, args[0]];
+      const id = await projects.resolveProject(reference);
+      const target = await projects.findTarget(id, name);
+      const changes = Object.fromEntries([['name', flags.name], ['audience', flags.audience], ['page', typeof flags.page === 'string' ? pagePath(flags.page) : undefined]].filter(([, value]) => typeof value === 'string'));
+      return emit(await projects.updateTarget(id, target.id, changes), showView);
     }
     if (action === 'site') {
       info('Leyendo el sitemap y comprobando las páginas…');
@@ -228,7 +240,7 @@ const commands = {
     if (action === 'show' || !action) {
       return emit(await projects.getProject(await projects.resolveProject(args[0])), showView);
     }
-    throw new Error('Uso: seo project new|target|show|plan|site|report|delete (ver seo help)');
+    throw new Error('Uso: seo project new|target|set-target|show|plan|site|report|delete (ver seo help)');
   },
 
   async keywords() {
