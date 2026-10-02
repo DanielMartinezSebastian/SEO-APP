@@ -1,397 +1,234 @@
 import express from 'express';
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import { KeywordAnalyzer } from '../../services/keywordService.js';
-import { ExportService } from '../../services/exportService.js';
+import { RESULTS_DIR } from '../../config.js';
+import * as studies from '../../services/studyService.js';
+import { NotFoundError } from '../../services/studyService.js';
+import { briefToMarkdown } from '../../../shared/brief.js';
+import { planToMarkdown } from '../../../shared/plan.js';
+import { trendsToMarkdown } from '../../../shared/seasonality.js';
+import { ValidationError, isReportFile } from '../../utils/validation.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 const router = express.Router();
 
-// Directorio de resultados
-const RESULTS_DIR = path.join(__dirname, '../../../data/results');
-
-// GET /api/seo/reports - Listar todos los reportes disponibles
-router.get('/reports', async (req, res) => {
+// Envuelve un handler async y traduce sus errores a la respuesta de error común de la API
+const route = (errorLabel, handler) => async (req, res) => {
   try {
-    const files = await fs.readdir(RESULTS_DIR);
-    const reports = files
-      .filter(file => file.endsWith('.json') && file.includes('seo_report_full_'))
-      .map(file => {
-        const timestamp = file.match(/seo_report_full_(.+)\.json/)?.[1];
-        return {
-          filename: file,
-          timestamp: timestamp ? timestamp.replace(/-/g, ':').replace('T', ' ').slice(0, -1) : 'Unknown',
-          url: `/reports/${file}`,
-          downloadUrl: `/api/seo/download/${file}`
-        };
-      })
-      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-
-    res.json({
-      success: true,
-      count: reports.length,
-      reports
-    });
+    await handler(req, res);
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Error al listar reportes',
-      message: error.message
-    });
+    if (error instanceof ValidationError) {
+      return res.status(400).json({ success: false, error: error.message });
+    }
+    if (error instanceof NotFoundError || error.code === 'ENOENT') {
+      return res.status(404).json({ success: false, error: error instanceof NotFoundError ? error.message : 'Estudio no encontrado' });
+    }
+    if (error.upstream) {
+      return res.status(502).json({ success: false, error: 'No se pudo consultar la fuente de datos', message: error.message });
+    }
+    console.error(error);
+    res.status(500).json({ success: false, error: errorLabel, message: error.message });
   }
-});
+};
 
-// GET /api/seo/report/:filename - Obtener un reporte específico
-router.get('/report/:filename', async (req, res) => {
-  try {
-    const { filename } = req.params;
-    const filePath = path.join(RESULTS_DIR, filename);
-    
-    // Verificar que el archivo existe y es un JSON de reporte
-    if (!filename.endsWith('.json') || !filename.includes('seo_report_full_')) {
-      return res.status(400).json({
-        success: false,
-        error: 'Nombre de archivo inválido'
-      });
-    }
-
-    const data = await fs.readFile(filePath, 'utf8');
-    const report = JSON.parse(data);
-
-    res.json({
-      success: true,
-      filename,
-      data: report
-    });
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      res.status(404).json({
-        success: false,
-        error: 'Reporte no encontrado'
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: 'Error al leer el reporte',
-        message: error.message
-      });
-    }
-  }
-});
-
-// POST /api/seo/analyze - Crear nuevo análisis de keywords
-router.post('/analyze', async (req, res) => {
-  try {
-    const { keywords, country = 'ES', language = 'es' } = req.body;
-
-    if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Se requiere un array de keywords'
-      });
-    }
-
-    const analyzer = new KeywordAnalyzer();
-    const exporter = new ExportService();
-
-    // Analizar keywords
-    await analyzer.analyzeMultipleKeywords(keywords, country, language);
-    
-    // Exportar resultados
-    const { jsonPath, csvPath } = await exporter.exportFullReport(analyzer);
-    
-    const results = analyzer.getResults();
-    const summary = analyzer.getSummary();
-
-    res.json({
-      success: true,
-      message: 'Análisis completado exitosamente',
-      summary,
-      files: {
-        json: jsonPath.replace(process.cwd(), ''),
-        csv: csvPath.replace(process.cwd(), '')
-      },
-      downloadUrls: {
-        json: `/api/seo/download/${path.basename(jsonPath)}`,
-        csv: `/api/seo/download/${path.basename(csvPath)}`
-      },
-      data: results
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Error durante el análisis',
-      message: error.message
-    });
-  }
-});
-
-// GET /api/seo/download/:filename - Descargar archivo
-router.get('/download/:filename', async (req, res) => {
-  try {
-    const { filename } = req.params;
-    const filePath = path.join(RESULTS_DIR, filename);
-
-    // Verificar que el archivo existe
-    await fs.access(filePath);
-
-    // Configurar headers para descarga
-    const ext = path.extname(filename);
-    let contentType = 'application/octet-stream';
-    
-    if (ext === '.json') {
-      contentType = 'application/json';
-    } else if (ext === '.csv') {
-      contentType = 'text/csv';
-    }
-
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    
-    const data = await fs.readFile(filePath);
-    res.send(data);
-
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      res.status(404).json({
-        success: false,
-        error: 'Archivo no encontrado'
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: 'Error al descargar archivo',
-        message: error.message
-      });
-    }
-  }
-});
-
-// POST /api/seo/analyze-suggestions - Analizar sugerencias de un reporte existente
-router.post('/analyze-suggestions', async (req, res) => {
-  try {
-    const { filename, country = 'ES', language = 'es' } = req.body;
-
-    if (!filename || !filename.endsWith('.json') || !filename.includes('seo_report_full_')) {
-      return res.status(400).json({
-        success: false,
-        error: 'Se requiere un nombre de archivo de reporte válido'
-      });
-    }
-
-    const filePath = path.join(RESULTS_DIR, filename);
-    
-    // Leer el reporte existente
-    const data = await fs.readFile(filePath, 'utf8');
-    const reportData = JSON.parse(data);
-
-    // Extraer todas las sugerencias que no tienen datos SEO
-    const suggestionsToAnalyze = new Set();
-    
-    for (const report of reportData) {
-      if (report.suggestions && Array.isArray(report.suggestions)) {
-        for (const suggestion of report.suggestions) {
-          // Solo analizar sugerencias que no tengan datos SEO completos
-          if (!report.keywordData[suggestion] || !report.keywordData[suggestion].search_volume) {
-            suggestionsToAnalyze.add(suggestion);
-          }
-        }
-      }
-    }
-
-    if (suggestionsToAnalyze.size === 0) {
-      return res.json({
-        success: true,
-        message: 'No hay sugerencias nuevas para analizar',
-        suggestionsAnalyzed: 0,
-        data: reportData
-      });
-    }
-
-    const analyzer = new KeywordAnalyzer();
-    const exporter = new ExportService();
-
-    // Analizar todas las sugerencias como un lote
-    const suggestionsArray = Array.from(suggestionsToAnalyze);
-    await analyzer.analyzeSuggestions(suggestionsArray, country, language);
-    
-    // Verificar si realmente se obtuvieron nuevos datos antes de combinar
-    const newSuggestionsData = analyzer.getResults();
-    let successfullyAnalyzed = 0;
-    let processedSuccessfully = 0;
-    
-    // Contar cuántas sugerencias realmente obtuvieron datos SEO
-    for (const result of newSuggestionsData) {
-      processedSuccessfully++; // Contar que el análisis se ejecutó sin errores
-      
-      if (result.keywordData) {
-        for (const [keyword, data] of Object.entries(result.keywordData)) {
-          if (suggestionsToAnalyze.has(keyword) && 
-              data && 
-              typeof data.search_volume === 'number') {
-            successfullyAnalyzed++;
-          }
-        }
-      }
-    }
-    
-    // Si no se procesó ninguna sugerencia (error total del sistema), devolver error
-    if (processedSuccessfully === 0) {
-      return res.status(500).json({
-        success: false,
-        error: 'Error del sistema analizando sugerencias',
-        message: 'No se pudo procesar ninguna sugerencia. Por favor, verifica la conectividad de red o intenta más tarde.',
-        suggestionsAttempted: suggestionsArray.length,
-        suggestionsAnalyzed: 0,
-        data: reportData // Devolver los datos originales
-      });
-    }
-    
-    let newFilename, csvPath, mergedData;
-    
-    // Solo crear nuevos archivos si realmente hay datos nuevos
-    if (successfullyAnalyzed > 0) {
-      // Combinar los datos existentes con los nuevos datos de sugerencias
-      mergedData = await mergeSuggestionsIntoReport(reportData, newSuggestionsData);
-
-      // Guardar el reporte actualizado con timestamp actualizado
-      const updatedTimestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -1);
-      newFilename = `seo_report_full_${updatedTimestamp}.json`;
-      const newFilePath = path.join(RESULTS_DIR, newFilename);
-      
-      await fs.writeFile(newFilePath, JSON.stringify(mergedData, null, 2));
-
-      // Exportar también el CSV actualizado
-      analyzer.results = new Map();
-      mergedData.forEach(report => {
-        analyzer.results.set(report.keyword, report);
-      });
-      
-      const exportResult = await exporter.exportFullReport(analyzer, updatedTimestamp);
-      csvPath = exportResult.csvPath;
-    }
-
-    res.json({
-      success: true,
-      message: successfullyAnalyzed > 0 ? 
-        `Se analizaron ${successfullyAnalyzed} de ${suggestionsArray.length} sugerencias exitosamente. ${suggestionsArray.length - successfullyAnalyzed} sugerencias no tenían datos SEO disponibles.` :
-        `Se procesaron ${suggestionsArray.length} sugerencias, pero ninguna tenía datos SEO disponibles en la base de datos.`,
-      suggestionsAnalyzed: successfullyAnalyzed,
-      suggestionsProcessed: processedSuccessfully,
-      suggestionsAttempted: suggestionsArray.length,
-      originalFile: filename,
-      newFiles: successfullyAnalyzed > 0 ? {
-        json: newFilename,
-        csv: path.basename(csvPath)
-      } : null,
-      downloadUrls: successfullyAnalyzed > 0 ? {
-        json: `/api/seo/download/${newFilename}`,
-        csv: `/api/seo/download/${path.basename(csvPath)}`
-      } : null,
-      data: successfullyAnalyzed > 0 ? mergedData : reportData
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Error analizando sugerencias',
-      message: error.message
-    });
-  }
-});
-
-// Función auxiliar para combinar datos de sugerencias en el reporte
-async function mergeSuggestionsIntoReport(originalData, suggestionsData) {
-  const mergedData = JSON.parse(JSON.stringify(originalData)); // Deep copy
-  
-  // Crear un mapa de los nuevos datos de sugerencias
-  const suggestionsMap = new Map();
-  suggestionsData.forEach(item => {
-    if (item.keywordData) {
-      Object.keys(item.keywordData).forEach(keyword => {
-        suggestionsMap.set(keyword, item.keywordData[keyword]);
-      });
-    }
-  });
-
-  // Integrar los datos de sugerencias en cada reporte
-  mergedData.forEach(report => {
-    if (report.suggestions && Array.isArray(report.suggestions)) {
-      report.suggestions.forEach(suggestion => {
-        if (suggestionsMap.has(suggestion) && !report.keywordData[suggestion]) {
-          report.keywordData[suggestion] = suggestionsMap.get(suggestion);
-        }
-      });
-    }
-  });
-
-  return mergedData;
+// ¿Puede esta petición auditar direcciones locales (un sitio en desarrollo)? Sí cuando quien la hace ya está en
+// este equipo o en la red privada. Detrás de un proxy inverso todas las peticiones parecen locales, así que si
+// hay cabeceras de reenvío se trata como externa (para ese caso está SEO_ALLOW_PRIVATE_URLS=1).
+const PRIVATE_CLIENT = /^(::1|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|f[cd])/i;
+function canAuditLocal(req) {
+  if (req.headers['x-forwarded-for'] || req.headers.forwarded) return false;
+  const address = (req.socket.remoteAddress || '').replace(/^::ffff:/, '');
+  return PRIVATE_CLIENT.test(address);
 }
 
-// DELETE /api/seo/report/:filename - Eliminar un reporte
-router.delete('/report/:filename', async (req, res) => {
-  try {
-    const { filename } = req.params;
-    
-    if (!filename.includes('seo_report_')) {
-      return res.status(400).json({
-        success: false,
-        error: 'Solo se pueden eliminar reportes SEO'
-      });
-    }
+const wantsMarkdown = (req) => req.query.format === 'md' || req.query.format === 'markdown';
+const attachment = (res, type, filename) => {
+  res.setHeader('Content-Type', type);
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+};
+const exportName = (filename, prefix, extension) => filename.replace('seo_report_full_', prefix).replace(/\.json$/, extension);
 
-    const filePath = path.join(RESULTS_DIR, filename);
+// ---------- Estudios ----------
 
-    // Construir el nombre del CSV asociado
-    let csvFilename = null;
-    if (filename.startsWith('seo_report_full_') && filename.endsWith('.json')) {
-      const timestamp = filename.replace('seo_report_full_', '').replace('.json', '');
-      csvFilename = `seo_report_summary_${timestamp}.csv`;
-    }
+// GET /api/seo/reports - Listar los estudios
+router.get('/reports', route('Error al listar estudios', async (req, res) => {
+  const reports = await studies.listStudies();
+  res.json({ success: true, count: reports.length, reports });
+}));
 
-    // Eliminar el JSON
-    await fs.unlink(filePath);
+// POST /api/seo/analyze - Crear un estudio: analiza las keywords y guarda la ficha del cliente
+router.post('/analyze', route('Error durante el análisis', async (req, res) => {
+  const created = await studies.createStudy(req.body || {});
+  res.json({
+    success: true,
+    message: 'Análisis completado exitosamente',
+    summary: created.legacySummary,
+    study: created.summary,
+    files: { json: created.filename, csv: created.csvFilename },
+    downloadUrls: {
+      json: `/api/seo/download/${created.filename}`,
+      csv: `/api/seo/download/${created.csvFilename}`
+    },
+    data: created.report
+  });
+}));
 
-    // Intentar eliminar el CSV si existe
-    let csvDeleted = false;
-    if (csvFilename) {
-      const csvPath = path.join(RESULTS_DIR, csvFilename);
-      try {
-        await fs.unlink(csvPath);
-        csvDeleted = true;
-      } catch (err) {
-        // Si el CSV no existe, no es un error fatal
-        if (err.code !== 'ENOENT') throw err;
-      }
-    }
+// GET /api/seo/report/:filename - Datos completos de un estudio
+router.get('/report/:filename', route('Error al leer el estudio', async (req, res) => {
+  const { filename, report, study, summary } = await studies.getStudy(req.params.filename);
+  res.json({ success: true, filename, data: report, study, summary });
+}));
 
-    res.json({
-      success: true,
-      message: 'Reporte eliminado exitosamente',
-      filesDeleted: {
-        json: filename,
-        csv: csvDeleted ? csvFilename : null
-      }
-    });
+// PATCH /api/seo/report/:filename/study - Actualizar la ficha del estudio (nombre, cliente, sitio, autor, notas, color)
+router.patch('/report/:filename/study', route('Error al guardar la ficha', async (req, res) => {
+  res.json({ success: true, study: await studies.updateStudy(req.params.filename, req.body || {}) });
+}));
 
-  } catch (error) {
-    if (error.code === 'ENOENT') {
-      res.status(404).json({
-        success: false,
-        error: 'Reporte no encontrado'
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: 'Error al eliminar reporte',
-        message: error.message
-      });
-    }
+// DELETE /api/seo/report/:filename - Eliminar un estudio con su CSV, su ficha y sus auditorías
+router.delete('/report/:filename', route('Error al eliminar el estudio', async (req, res) => {
+  const filesDeleted = await studies.deleteStudy(req.params.filename);
+  res.json({ success: true, message: 'Estudio eliminado exitosamente', filesDeleted });
+}));
+
+// POST /api/seo/analyze-suggestions - Completar los datos de las sugerencias e ideas pendientes
+router.post('/analyze-suggestions', route('Error analizando sugerencias', async (req, res) => {
+  const { filename, country } = req.body || {};
+  const result = await studies.completeSuggestions(filename, country);
+  res.json({
+    success: true,
+    message: result.updated
+      ? [
+        `${result.analyzed} de ${result.attemptedCount} sugerencias obtuvieron datos SEO.`,
+        result.withoutData > 0 ? `${result.withoutData} no tienen datos disponibles.` : '',
+        result.failed > 0 ? `${result.failed} no se pudieron consultar y siguen pendientes.` : ''
+      ].filter(Boolean).join(' ')
+      : 'No hay sugerencias nuevas para analizar',
+    suggestionsAttempted: result.attemptedCount,
+    suggestionsAnalyzed: result.analyzed,
+    suggestionsWithoutData: result.withoutData,
+    suggestionsFailed: result.failed,
+    updated: result.updated,
+    data: result.report
+  });
+}));
+
+// ---------- Lecturas derivadas (pensadas para agentes e integraciones) ----------
+
+// GET /api/seo/report/:filename/insights - Ranking de oportunidades, intención, temas y conclusiones
+router.get('/report/:filename/insights', route('Error al calcular la estrategia', async (req, res) => {
+  res.json({ success: true, insights: await studies.getInsights(req.params.filename) });
+}));
+
+// GET /api/seo/report/:filename/plan - Plan de acción priorizado (?format=md para Markdown)
+router.get('/report/:filename/plan', route('Error al calcular el plan', async (req, res) => {
+  const plan = await studies.getPlan(req.params.filename);
+  if (wantsMarkdown(req)) return res.type('text/markdown').send(planToMarkdown(plan));
+  res.json({ success: true, plan });
+}));
+
+// GET /api/seo/report/:filename/brief?keyword=... - Brief de contenido (?format=md para Markdown)
+router.get('/report/:filename/brief', route('Error al generar el brief', async (req, res) => {
+  const { brief } = await studies.getBrief(req.params.filename, req.query.keyword);
+  if (wantsMarkdown(req)) return res.type('text/markdown').send(briefToMarkdown(brief));
+  res.json({ success: true, brief });
+}));
+
+// GET /api/seo/report/:filename/keyword-map - Qué URL del sitio corresponde a cada keyword (?refresh relee el sitemap)
+router.get('/report/:filename/keyword-map', route('Error al calcular el mapa de keywords', async (req, res) => {
+  res.json({ success: true, ...(await studies.getKeywordMap(req.params.filename, { refresh: req.query.refresh !== undefined, allowLocal: canAuditLocal(req) })) });
+}));
+
+// GET /api/seo/report/:filename/trends - Tendencias y estacionalidad (?refresh las vuelve a pedir, ?retry solo lo que falló, ?format=md)
+router.get('/report/:filename/trends', route('Error al consultar las tendencias', async (req, res) => {
+  const result = await studies.getStudyTrends(req.params.filename, { refresh: req.query.refresh !== undefined, retry: req.query.retry !== undefined });
+  if (wantsMarkdown(req)) return res.type('text/markdown').send(trendsToMarkdown(result.insights));
+  res.json({ success: true, ...result });
+}));
+
+// POST /api/seo/report/:filename/trends - Añadir keywords concretas a las tendencias ({ keywords: [] })
+router.post('/report/:filename/trends', route('Error al consultar las tendencias', async (req, res) => {
+  res.json({ success: true, ...(await studies.getStudyTrends(req.params.filename, { keywords: req.body?.keywords })) });
+}));
+
+// ---------- Auditorías ----------
+
+// POST /api/seo/audit/text - Auditar un texto sin guardarlo ({ text, keyword, title, metaDescription, filename? })
+router.post('/audit/text', route('Error al auditar el texto', async (req, res) => {
+  res.json({ success: true, result: await studies.auditText(req.body || {}, req.body?.filename) });
+}));
+
+// POST /api/seo/audit/url - Auditar una URL pública sin guardarla ({ url, keyword, filename? })
+router.post('/audit/url', route('Error al auditar la URL', async (req, res) => {
+  res.json({ success: true, result: await studies.auditPage(req.body || {}, req.body?.filename, { allowLocal: canAuditLocal(req) }) });
+}));
+
+// POST /api/seo/audit/site - Auditar un sitio por su sitemap sin guardarlo ({ site, pages? })
+router.post('/audit/site', route('Error al auditar el sitio', async (req, res) => {
+  res.json({ success: true, result: await studies.auditSitemap(req.body?.site, { allowLocal: canAuditLocal(req), pages: Number(req.body?.pages) || undefined }) });
+}));
+
+// POST /api/seo/report/:filename/site-audit - Auditar el sitio del estudio por su sitemap y guardarlo ({ pages? })
+router.post('/report/:filename/site-audit', route('Error al auditar el sitio', async (req, res) => {
+  const study = await studies.runSiteAudit(req.params.filename, { allowLocal: canAuditLocal(req), pages: Number(req.body?.pages) || undefined });
+  res.status(201).json({ success: true, study });
+}));
+
+// GET /api/seo/report/:filename/audits - Auditorías guardadas en el estudio
+router.get('/report/:filename/audits', route('Error al leer las auditorías', async (req, res) => {
+  const { study } = await studies.getStudy(req.params.filename);
+  res.json({ success: true, audits: study.audits, pageAudits: study.pageAudits });
+}));
+
+// POST /api/seo/report/:filename/audits - Auditar un texto y guardarlo en el estudio
+router.post('/report/:filename/audits', route('Error al guardar la auditoría', async (req, res) => {
+  res.status(201).json({ success: true, ...(await studies.saveTextAudit(req.params.filename, req.body || {})) });
+}));
+
+// POST /api/seo/report/:filename/page-audits - Auditar una URL y guardarla en el estudio
+router.post('/report/:filename/page-audits', route('Error al auditar la página', async (req, res) => {
+  res.status(201).json({ success: true, ...(await studies.savePageAudit(req.params.filename, req.body || {}, { allowLocal: canAuditLocal(req) })) });
+}));
+
+// DELETE /api/seo/report/:filename/audits/:id - Quitar una auditoría (de texto o de página)
+router.delete('/report/:filename/audits/:id', route('Error al eliminar la auditoría', async (req, res) => {
+  res.json({ success: true, ...(await studies.removeAudit(req.params.filename, req.params.id)) });
+}));
+
+// ---------- Entregables ----------
+
+// GET /api/seo/report/:filename/pdf - Informe para el cliente en PDF
+router.get('/report/:filename/pdf', route('Error al generar el PDF', async (req, res) => {
+  const { filename } = req.params;
+  const pdf = await studies.exportPdf(filename);
+  attachment(res, 'application/pdf', exportName(filename, 'informe_seo_', '.pdf'));
+  res.send(pdf);
+}));
+
+// GET /api/seo/report/:filename/markdown - El mismo informe en Markdown
+router.get('/report/:filename/markdown', route('Error al generar el informe', async (req, res) => {
+  const { filename } = req.params;
+  const markdown = await studies.exportMarkdown(filename);
+  if (req.query.download !== undefined) attachment(res, 'text/markdown; charset=utf-8', exportName(filename, 'informe_seo_', '.md'));
+  else res.type('text/markdown');
+  res.send(markdown);
+}));
+
+// GET /api/seo/report/:filename/keywords.csv - Todas las keywords con su puntuación
+router.get('/report/:filename/keywords.csv', route('Error al exportar las keywords', async (req, res) => {
+  const { filename } = req.params;
+  const csv = await studies.exportKeywordsCsv(filename);
+  attachment(res, 'text/csv; charset=utf-8', exportName(filename, 'keywords_', '.csv'));
+  res.send(csv);
+}));
+
+// GET /api/seo/download/:filename - Descargar el JSON o el CSV de resumen de un estudio
+router.get('/download/:filename', route('Error al descargar archivo', async (req, res) => {
+  const { filename } = req.params;
+  if (!isReportFile(filename)) {
+    throw new ValidationError('Nombre de archivo inválido');
   }
-});
+  const data = await fs.readFile(path.join(RESULTS_DIR, filename));
+  attachment(res, filename.endsWith('.json') ? 'application/json' : 'text/csv; charset=utf-8', filename);
+  res.send(data);
+}));
 
 export default router;

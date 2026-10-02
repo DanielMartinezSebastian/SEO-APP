@@ -1,26 +1,41 @@
 {
   "name": "seo-app",
-  "version": "1.0.0",
-  "description": "Herramienta de análisis SEO con múltiples APIs - Backend y Frontend",
+  "version": "2.0.0",
+  "description": "Estudios de keywords, auditorías SEO e informes para clientes: interfaz web, API, CLI y servidor MCP para agentes",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "npm run build && node src/index.js",
     "dev": "node --watch src/index.js",
+    "dev:web": "vite",
+    "build": "vite build",
     "server": "node src/server/server.js",
     "server:dev": "node --watch src/server/server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "seo": "node bin/seo.js",
+    "mcp": "node bin/seo.js mcp"
   },
   "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@modelcontextprotocol/sdk": "^1.32.0",
+    "@react-three/fiber": "^9.8.1",
     "axios": "^1.11.0",
     "chalk": "^5.4.1",
     "cli-table3": "^0.6.3",
-    "cors": "^2.8.5",
     "csv-writer": "^1.6.0",
     "express": "^4.21.2",
-    "ora": "^7.0.1"
+    "node-html-parser": "^9.0.4",
+    "pdfkit": "^0.20.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "three": "^0.186.1",
+    "trama-ui": "^0.2.0"
   },
   "devDependencies": {
-    "dotenv": "^16.3.1"
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.3.2"
+  },
+  "bin": {
+    "seo": "bin/seo.js"
   }
 }

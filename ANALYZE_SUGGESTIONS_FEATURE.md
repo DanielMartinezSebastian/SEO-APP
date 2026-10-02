@@ -1,5 +1,10 @@
 # Análisis de Sugerencias SEO - Nueva Funcionalidad
 
+> **Actualización (2026-10-02):** este documento describe la primera versión. Ahora el endpoint actualiza el mismo
+> reporte en lugar de crear archivos nuevos, consulta las sugerencias por lotes, usa el país guardado en el reporte y
+> marca con `no_data` las sugerencias sin datos para no repetirlas. La referencia vigente es `API_DOCS.md`, y la
+> interfaz vive en `web/src/pages/ReportDetails.jsx`.
+
 ## Descripción del Problema
 
 Cuando se realiza una búsqueda masiva de keywords, el sistema obtiene diferentes valores SEO de las keywords principales investigadas, pero también genera sugerencias relacionadas que **no tienen datos SEO completos**. Esto resulta en datos incompletos para el análisis gráfico y métricas.

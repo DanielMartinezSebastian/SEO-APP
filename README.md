@@ -1,212 +1,191 @@
-# SEO-APP
+# SEO App
 
-Herramienta completa de análisis SEO con backend API y frontend web interactivo.
+Herramienta para **preparar y entregar estudios de posicionamiento**: investiga keywords, dice por dónde empezar,
+genera el brief de cada página, audita textos y páginas reales, y produce un informe para el cliente.
 
-## 🚀 Características
+Se usa de cuatro formas, todas sobre la misma lógica:
 
-- **Backend API REST** completo para análisis SEO
-- **Frontend Web** interactivo con múltiples vistas
-- **Análisis Multi-API**: Google Suggestions, Keywordsur, URL Analysis
-- **Visualización Gráfica** avanzada con Chart.js
-- **Sistema de Temas** claro/oscuro automático
-- **Exportación** en JSON y CSV
-- **Gestión de Reportes** completa
-- **Diseño Responsive** optimizado para todos los dispositivos
+| Forma | Para quién | Cómo |
+|---|---|---|
+| Interfaz web | Consultores y agencias | `npm start` → `http://localhost:3000` |
+| CLI | Terminal, scripts, automatizaciones | `node bin/seo.js …` (o `seo …` tras `npm link`) |
+| Servidor MCP | Agentes de IA | `seo mcp` |
+| API REST | Integraciones propias | `/api/seo/…` ([API_DOCS.md](API_DOCS.md)) |
 
-## 📋 Funcionalidades
+## Qué resuelve
 
-### 🌐 Frontend Web
-- **Página Principal**: Crear análisis y gestionar reportes
-- **Vista Detallada**: Información completa de cada reporte
-- **Análisis Gráfico**: Visualizaciones interactivas con múltiples métricas
-- **Navegación Intuitiva**: Mismo tab por defecto, nueva pestaña con clic derecho
-- **Sistema de Temas**: Cambio automático entre modo claro y oscuro
-- **Layout Centrado**: Diseño optimizado con flexbox y 100dvh
-- **Favicon Dinámico**: Icono que cambia según el tema actual
+| Problema | Qué hace la app |
+|---|---|
+| «¿Qué busca la gente sobre esto?» | De cada keyword saca sugerencias de Google, preguntas, comparativas y keywords similares, con búsquedas, competencia y CPC |
+| «¿Por dónde empiezo?» | Puntúa cada keyword de 0 a 100, separa las victorias rápidas y dibuja la matriz demanda/competencia |
+| «¿Cómo organizo el sitio?» | Agrupa las keywords en temas y clasifica su intención (compra, comparativa, informativa, local) |
+| «¿Qué página del cliente cubre cada keyword?» | Cruza las keywords con el sitemap: página propia, hueco de contenido o páginas que compiten |
+| «¿Qué tiene que escribir el redactor?» | Brief por keyword: tipo de página, extensión, títulos, esquema, vocabulario, preguntas |
+| «¿Está bien este texto?» | Auditoría con nota de 0 a 100, en vivo, frente a la keyword y al campo semántico del estudio |
+| «¿Está la web en condiciones, también antes de publicarla?» | Auditoría de URL, pública o en `localhost`: servidor, indexabilidad, título y meta, encabezados, datos estructurados, enlaces, robots.txt, sitemap, rastreadores de IA |
+| «¿Qué le entrego al cliente?» | Informe PDF con resumen, plan de acción priorizado, oportunidades, briefs y auditorías; también en Markdown y CSV |
 
-### 🎨 Mejoras de UI/UX Implementadas
-- **Botones mejorados**: Colores púrpura corporativos consistentes
-- **Centrado perfecto**: Layout responsivo centrado verticalmente
-- **Bordes seamless**: Conexión visual entre secciones cuando hay reportes
-- **Ancho optimizado**: 900px máximo para mejor legibilidad
-- **Headers adaptativos**: Visibilidad correcta en ambos temas
-- **Favicon completo**: Implementación con site.webmanifest y múltiples tamaños
+### Qué no hace
 
-### 🔧 Backend API
-- `POST /api/seo/analyze` - Crear nuevo análisis
-- `GET /api/seo/reports` - Listar todos los reportes
-- `GET /api/seo/report/:filename` - Obtener reporte específico
-- `GET /api/seo/download/:filename` - Descargar archivo
-- `DELETE /api/seo/report/:filename` - Eliminar reporte
+No mide posiciones en Google, enlaces entrantes ni Core Web Vitals: para eso siguen haciendo falta Search Console y
+PageSpeed Insights. La «competencia» es el índice de la fuente de datos (refleja sobre todo la disputa entre
+anunciantes), no la dificultad orgánica. Los datos de demanda vienen de una fuente no oficial (ver [Limitaciones](#limitaciones)).
 
-### 📊 Análisis Incluye
-- **Keywords principales** y sus métricas (volumen, CPC, competencia)
-- **Keywords similares** con datos de superposición
-- **Sugerencias de Google** automáticas
-- **Análisis de dominios** (ranking keywords, tráfico estimado)
-- **Análisis de URLs** (contenido, palabras, keywords exactas)
+## Empezar
 
-## 🎨 Sistema de Colores y Temas
-
-### Colores de Keywords
-- Cada keyword principal tiene su **color único**
-- Keywords similares usan **tonos derivados** (60% opacidad)
-- Sugerencias usan **tonos más claros** (40% opacidad)
-- **Leyenda visual** para identificación rápida
-
-### Sistema de Temas
-- **Detección automática** del tema del sistema
-- **Cambio manual** con botón toggle
-- **Persistencia** en localStorage
-- **Transiciones suaves** entre temas
-- **Colores adaptativos** en gráficos y UI
-
-## 🖼️ Assets y Branding
-- **Logo corporativo**: seo-logo.png integrado
-- **Favicon dinámico**: Cambia automáticamente con el tema
-- **Site manifest**: Configuración PWA completa
-- **Iconos múltiples**: 16x16, 32x32, 192x192, 512x512
-
-## 🛠️ Instalación y Uso
-
-### Prerrequisitos
-- Node.js 18+
-- NPM o Yarn
-
-### Instalación
 ```bash
-git clone <repository>
-cd SEO-APP
 npm install
+npm start          # compila la interfaz y arranca en http://localhost:3000
 ```
 
-### Iniciar Aplicación
+Requiere Node.js 20 o superior.
+
+### Un estudio de principio a fin
+
+1. **Nuevo estudio**: las keywords principales del proyecto (de 2 a 6 suele bastar), país, idioma y, si lo tienes, el dominio del cliente.
+2. **Resumen**: conclusiones y plan de acción.
+3. **Keywords**: todas las búsquedas, con filtros y exportación a CSV.
+4. **Oportunidades**: ranking, victorias rápidas, matriz, temas e intención.
+5. **Contenido**: brief de cada keyword y auditoría del texto escrito.
+6. **Auditoría web**: mapa de keywords frente al sitemap y auditoría de las páginas del cliente.
+7. **Informe**: ficha del cliente y descarga en PDF, Markdown, CSV o JSON.
+
+La guía completa, con cómo leer cada dato, está dentro de la app (**Guía**).
+
+## CLI
+
 ```bash
-npm start
+seo new "zapatillas running, zapatillas trail" --site tienda.com --client "Deportes Sur"
+seo studies                      # estudios guardados
+seo show                         # resumen del último estudio
+seo keywords --intent transactional --top 20
+seo insights                     # oportunidades, intención y temas
+seo map                          # qué URL del sitio cubre cada keyword
+seo trends                       # estacionalidad, tendencia, consultas en auge y calendario (Google Trends)
+seo site                         # audita el sitio del estudio por su sitemap
+seo site --site localhost:3000   # lo mismo para cualquier sitio, sin estudio
+seo brief "zapatillas trail"     # brief en Markdown
+seo audit text borrador.md --keyword "zapatillas trail" --study latest --save
+seo audit url https://tienda.com/zapatillas-running --keyword "zapatillas running" --study latest --save
+seo plan                         # plan de acción
+seo report --format pdf --out informe.pdf
 ```
 
-Esto iniciará:
-- **Servidor web** en `http://localhost:3000`
-- **API REST** disponible en `/api/*`
-- **Interfaz web** para crear y gestionar análisis
+- Sin instalar globalmente: `node bin/seo.js …` o `npm run seo -- …`. Con `npm link`, la orden `seo` queda disponible.
+- `[estudio]` es el nombre de archivo; si se omite se usa el más reciente.
+- `--json` da JSON limpio por la salida estándar; el progreso y los errores van a stderr. El código de salida es 1 si algo falla.
+- `seo help` lista todos los comandos.
 
-### Scripts Disponibles
-- `npm start` - Inicia servidor completo
-- `npm run dev` - Modo desarrollo con auto-reload
-- `npm run server` - Solo servidor (sin mensajes de inicio)
-- `npm run server:dev` - Servidor en modo desarrollo
+## Sitios en desarrollo
 
-## 📁 Estructura del Proyecto
+La auditoría de URL también vale para una web que todavía no está publicada: `http://localhost:3000/pagina`, una
+IP de la red local o un dominio `.test`/`.local`.
+
+```bash
+seo audit url localhost:3000/zapatillas --keyword "zapatillas running"
+seo audit url localhost:3000/zapatillas --keyword "zapatillas running" --study latest --save   # compara con la pasada anterior
+seo audit url localhost:3000/zapatillas --keyword "zapatillas running" --watch 5               # repite y avisa cuando algo cambia
+```
+
+- En un sitio local no se evalúan HTTPS ni el tiempo de respuesta, un `noindex` es solo un aviso, y una canónica que apunta a la misma ruta en el dominio de producción se da por buena (los enlaces a ese dominio cuentan como internos).
+- Al guardar la auditoría de una página ya auditada se indica qué comprobaciones han mejorado y cuáles han empeorado. En la interfaz, «Volver a auditar» hace lo mismo.
+- La auditoría no ejecuta JavaScript. Un servidor de desarrollo que entrega la página vacía y la pinta en el navegador (una SPA sin renderizado en servidor) sale como «Contenido en el HTML: falla»; audita entonces la versión compilada o con SSR.
+- «localhost» es siempre el equipo donde corre SEO App, no el del navegador desde el que se usa.
+
+**Quién puede auditar direcciones locales.** La CLI y el servidor MCP, siempre. La interfaz y la API, solo si la
+petición llega desde el propio equipo o desde la red privada, y nunca a través de un proxy inverso: así una
+instancia publicada en internet no sirve para leer la red interna del servidor. `SEO_ALLOW_PRIVATE_URLS=1` lo permite
+siempre y `SEO_ALLOW_PRIVATE_URLS=0` nunca. Las direcciones de metadatos de las nubes (169.254.x.x) no se piden en ningún caso.
+
+### El sitio entero, por su sitemap
+
+El sitio de un estudio puede ser un dominio (`ejemplo.com`) o un sitio en desarrollo (`localhost:3000`,
+`192.168.1.20:8080`, `miweb.test`). `seo site` —o «Auditar el sitio» en la pestaña «Auditoría web»— lee el sitemap
+declarado en robots.txt (o `/sitemap.xml`, siguiendo índices), descarga hasta 40 URLs y agrupa lo que se repite:
+páginas rotas, redirecciones, noindex, canónicas, títulos y descripciones repetidos, H1, contenido escaso y páginas
+vacías sin JavaScript. En local, las URLs del sitemap que ya llevan el dominio de producción se comprueban en local
+por la misma ruta. Cada pasada se compara con la anterior y los problemas pasan al plan de acción y al informe.
+
+## Tendencias y calendario
+
+`seo trends` (pestaña «Tendencias») consulta Google Trends para las keywords principales y las más buscadas del
+resto: patrón estacional, meses de temporada alta, tendencia del último año, calendario de publicación y campañas a
+doce meses, consultas en auge que el estudio no contempla y qué parte de lo que se busca alrededor recoge el estudio.
+Google limita estas consultas: el resultado se guarda y `--retry` pide solo lo que falló.
+Cómo cruzar todo esto para decidir está en [docs/METODOLOGIA.md](docs/METODOLOGIA.md).
+
+## Agentes de IA (MCP)
+
+`seo mcp` arranca un servidor [Model Context Protocol](https://modelcontextprotocol.io) por stdio. Configuración
+para cualquier cliente compatible:
+
+```json
+{
+  "mcpServers": {
+    "seo-app": { "command": "node", "args": ["bin/seo.js", "mcp"], "cwd": "/ruta/a/SEO-APP" }
+  }
+}
+```
+
+Herramientas: `list_studies`, `create_study`, `get_insights`, `get_keywords`, `keyword_map`, `site_audit`, `get_trends`, `content_brief`,
+`audit_text`, `audit_url`, `action_plan`, `client_report`, `update_study`. Flujos de trabajo y ejemplos en
+[docs/AGENTES.md](docs/AGENTES.md).
+
+## Despliegue privado
+
+Pensada para correr en el equipo del consultor o en un servidor de la agencia.
+
+| Variable | Para qué | Por defecto |
+|---|---|---|
+| `PORT` | Puerto | `3000` |
+| `HOST` | Interfaz de red; `127.0.0.1` la limita al propio equipo | todas |
+| `SEO_AUTH` | `usuario:contraseña`. Si se define, la interfaz y la API piden esas credenciales (HTTP Basic) | sin control de acceso |
+| `SEO_RESULTS_DIR` | Carpeta donde se guardan los estudios | `data/results` |
+| `SEO_ALLOW_PRIVATE_URLS` | `1` permite siempre auditar direcciones locales; `0`, nunca | según quién llama (ver [Sitios en desarrollo](#sitios-en-desarrollo)) |
+
+```bash
+SEO_AUTH="agencia:una-contraseña-larga" PORT=8080 npm start
+```
+
+- Con `SEO_AUTH`, sirve la app detrás de HTTPS (un proxy inverso): Basic envía la contraseña en cada petición.
+- No hay usuarios ni permisos: quien entra ve todos los estudios. Para separar clientes, una instancia (o una carpeta `SEO_RESULTS_DIR`) por equipo.
+- Los estudios son archivos JSON en `data/results`: la copia de seguridad es copiar la carpeta.
+- La marca del informe se ajusta por estudio: nombre de la agencia y color de acento del PDF.
+
+## Desarrollo
+
+```bash
+npm run server:dev   # API con recarga automática
+npm run dev:web      # interfaz con Vite en http://localhost:5173 (usa la API anterior)
+npm run build        # compila la interfaz en web/dist
+npm test             # 50 tests; api.test.js necesita red
+```
 
 ```
 SEO-APP/
+├── bin/seo.js         # CLI
+├── shared/            # Lógica pura, común a servidor e interfaz: oportunidades, brief, plan, auditoría de texto, mapa
 ├── src/
-│   ├── api/           # Módulos de APIs externas
-│   ├── server/        # Servidor Express y rutas
-│   ├── services/      # Lógica de negocio
-│   └── utils/         # Utilidades
-├── public/            # Frontend web
-│   ├── index.html     # Página principal
-│   ├── report-details.html  # Vista detallada
-│   ├── analytics.html # Análisis gráfico
-│   ├── themes.js      # Sistema de temas
-│   ├── seo-logo.png   # Logo corporativo
-│   ├── favicon.svg    # Favicon dinámico
-│   ├── site.webmanifest # Configuración PWA
-│   └── *.js, *.css   # Scripts y estilos
-└── data/results/      # Reportes generados
+│   ├── api/           # Clientes de las fuentes de datos
+│   ├── services/      # Estudios, auditoría de URL, PDF, Markdown
+│   ├── server/        # Express: API y entrega de la interfaz
+│   ├── mcp/           # Servidor MCP
+│   └── utils/         # Validación
+├── web/               # Interfaz (React + Vite + trama-ui)
+├── tests/
+├── docs/              # AGENTES.md, EVALUACION.md
+└── data/results/      # Estudios (no versionados)
 ```
 
-## 🎯 Uso Básico
+La interfaz usa [trama-ui](https://github.com/DanielMartinezSebastian/trama) (variante `dotmatrix`, tema claro y oscuro).
 
-1. **Accede** a `http://localhost:3000`
-2. **Ingresa keywords** separadas por comas
-3. **Inicia análisis** y espera los resultados
-4. **Visualiza** reportes en la página principal
-5. **Explora** detalles y análisis gráfico
-6. **Cambia tema** con el botón toggle
-7. **Exporta** datos según necesidades
+## Limitaciones
 
-## 🔧 Configuración APIs
+- **Fuente de datos no oficial.** Volumen, competencia, CPC, similares y datos de dominio salen de `keywordsur.fr`, consultado como lo hace su extensión. Puede cambiar o dejar de responder sin aviso y su uso puede no estar permitido por sus condiciones. Para un producto comercial conviene sustituirla por una API con contrato (el cliente está aislado en `src/api/keywordsur.js`).
+- **Las búsquedas muy concretas no tienen volumen.** La fuente solo mide una parte de la cola larga: es normal que muchas ideas salgan «sin dato».
+- **El análisis es síncrono.** Unos 5 segundos por keyword y un máximo de 25 por estudio.
+- **La intención y el mapa de keywords son heurísticos.** La intención se deduce de las palabras; el mapa, de las palabras de cada URL.
+- **Las auditorías aplican buenas prácticas, no reglas de Google.** Los umbrales están en `shared/contentAnalysis.js`.
 
-Las APIs se configuran en los archivos correspondientes:
-- `src/api/googleSuggestions.js`
-- `src/api/keywordsur.js` 
-- `src/api/urlAnalysis.js`
-
-## 📈 Métricas Analizadas
-
-- **Volumen de búsqueda mensual**
-- **CPC (Coste por Clic)**
-- **Nivel de competencia**
-- **Keywords similares**
-- **Sugerencias relacionadas**
-- **Análisis de dominios competidores**
-- **Análisis de contenido de URLs**
-
-## 🎨 Visualizaciones
-
-- **Gráficos principales**: Barras, circular, dona, líneas, radar
-- **Distribuciones**: Por tipo, competencia, CPC
-- **Correlaciones**: Volumen vs CPC
-- **Insights automáticos**: Oportunidades y recomendaciones
-- **Temas adaptativos**: Todos los gráficos se adaptan al tema actual
-
-## 🔧 Características Técnicas
-
-### Frontend
-- **Chart.js**: Visualizaciones interactivas
-- **Flexbox Layout**: Centrado perfecto con 100dvh
-- **CSS Variables**: Sistema de temas dinámico
-- **Responsive Design**: Optimizado para móviles y desktop
-- **LocalStorage**: Persistencia de preferencias
-
-### Backend
-- **Express.js**: Servidor web robusto
-- **File System**: Gestión de reportes
-- **CORS**: Configuración para desarrollo
-- **Error Handling**: Manejo completo de errores
-
-## 📝 Notas de Desarrollo
-
-### Últimas Mejoras Implementadas
-- ✅ Sistema de temas claro/oscuro completo
-- ✅ Favicon dinámico que cambia con el tema
-- ✅ Logo corporativo integrado
-- ✅ Layout centrado con 100dvh
-- ✅ Bordes seamless entre secciones
-- ✅ Ancho optimizado (900px)
-- ✅ Botones con colores corporativos
-- ✅ Headers adaptativos para ambos temas
-- ⚠️ Leyendas de gráficos circulares: Implementación parcial (requiere investigación adicional de Chart.js)
-
-### Problemas Conocidos
-- Las leyendas de gráficos circulares (doughnut/pie) pueden no cambiar de color inmediatamente al cambiar tema
-- Workaround implementado con CSS `!important` y manipulación DOM
-
-## 🌟 Funcionalidades Destacadas
-
-### Sistema de Temas Avanzado
-- **Detección automática** del tema del sistema operativo
-- **Cambio manual** preservado en localStorage
-- **Favicon adaptativo** que cambia según el tema
-- **Transiciones CSS** suaves entre temas
-- **Variables CSS** para consistencia global
-
-### Layout Responsive Premium
-- **Centrado vertical** perfecto con flexbox y 100dvh
-- **Ancho optimizado** de 900px para mejor legibilidad
-- **Bordes seamless** entre secciones cuando hay reportes
-- **Headers adaptativos** que se ven correctamente en ambos temas
-- **Diseño mobile-first** optimizado para todos los dispositivos
-
-### Branding Corporativo
-- **Logo integrado** en header principal
-- **Colores púrpura** consistentes en toda la aplicación
-- **Botones estilizados** con hover effects
-- **Favicon SVG** dinámico y escalable
-- **PWA ready** con site.webmanifest completo
-
----
-
-Desarrollado con ❤️ para análisis SEO profesional
+Evaluación de la herramienta frente a casos reales, con lo que resuelve y lo que no: [docs/EVALUACION.md](docs/EVALUACION.md).
+Hallazgos de la auditoría del código original y su estado: [AUDITORIA.md](AUDITORIA.md).

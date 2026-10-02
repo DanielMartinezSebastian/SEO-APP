@@ -7,11 +7,6 @@ test('KeywordAnalyzer should have analyzeSuggestions method', () => {
   assert(typeof analyzer.analyzeSuggestions === 'function', 'analyzeSuggestions should be a function');
 });
 
-test('KeywordAnalyzer should have analyzeSuggestionKeyword method', () => {
-  const analyzer = new KeywordAnalyzer();
-  assert(typeof analyzer.analyzeSuggestionKeyword === 'function', 'analyzeSuggestionKeyword should be a function');
-});
-
 test('KeywordAnalyzer results map should initialize properly', () => {
   const analyzer = new KeywordAnalyzer();
   assert(analyzer.results instanceof Map, 'results should be a Map instance');

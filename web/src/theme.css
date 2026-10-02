@@ -1,0 +1,264 @@
+/* Tema de la app. Parte de la landing «SIGNAL · dot matrix» de trama-ui: tokens de `dotmatrixTokens` con un
+   rojo como único color y la variante `dotmatrix` en todo el kit. El tema claro es el mismo sistema invertido. */
+:root {
+  /* la fuente que la variante dotmatrix espera en esta variable (en Next la pone next/font) */
+  --font-ibm-plex-mono: "IBM Plex Mono";
+  --font: var(--font-ibm-plex-mono), ui-monospace, Consolas, monospace;
+  /* titulares en la misma monoespaciada: Doto, la de matriz de puntos de la variante, cuesta leerla */
+  --display: var(--font);
+
+  --bg: #000000;
+  --fg: #e6e6e6;
+  --mut: #9a9a9a;
+  --acc: #ff3b3b;
+  --acc2: #b3261e;
+  --card: rgba(255, 255, 255, 0.035);
+  --ln: rgba(255, 255, 255, 0.22);
+  --r: 0px;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #f1f0ea;
+  --fg: #141414;
+  --mut: #5f5f5a;
+  --acc: #d0201c;
+  --acc2: #8f1d17;
+  --card: rgba(0, 0, 0, 0.035);
+  --ln: rgba(0, 0, 0, 0.3);
+  color-scheme: light;
+  /* el halo de legibilidad del kit está pensado para texto claro sobre fondos animados: sobre papel emborrona */
+  --legibility-ts: 0 0 transparent;
+}
+/* ídem con el resplandor de fósforo de la variante dotmatrix */
+:root[data-theme="light"] .ui-s--dotmatrix { --s-ts: 0 0 transparent; --s-pri-sh: none; }
+/* colores de estado del kit, oscurecidos para que se lean sobre papel */
+:root[data-theme="light"], :root[data-theme="light"] .ui-s { --ok: #17803f; --info: #1560a8; --warn: #9a5b00; --bad: #c21d36; }
+
+/* titulares de la variante en la fuente del cuerpo (ver --display) */
+.ui-s--dotmatrix { --s-df: var(--font); }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font);
+  line-height: 1.5;
+}
+
+a { color: var(--acc); }
+:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+
+/* ---------- Estructura ---------- */
+.dmx { position: relative; min-height: 100vh; display: flex; flex-direction: column; color: var(--fg); background: var(--bg); }
+
+/* Fondo: un RetroCanvas fijo con una figura en el margen derecho. Va atenuado: es ambiente, no contenido. */
+.dmx__bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; background: var(--bg); }
+.dmx__bg > * { opacity: 0.38; }
+:root[data-theme="light"] .dmx__bg > * { opacity: 0.3; }
+
+.dmx__nav {
+  position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 10px;
+  padding: 10px clamp(12px, 4vw, 40px); background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(6px);
+}
+.dmx__nav > .ui-nav { flex: 1; }
+
+.dmx__main { position: relative; z-index: 5; flex: 1; padding-bottom: 48px; }
+.dmx__section { position: relative; padding: clamp(40px, 6vw, 72px) clamp(12px, 5vw, 40px); }
+.dmx__section--tight { padding-block: clamp(14px, 2.4vw, 26px); }
+.dmx__section > * { max-width: 1120px; margin-inline: auto; }
+
+.dmx__grid-3 { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
+.dmx__grid-2 { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); }
+.dmx__grid-2--editor { align-items: start; }
+/* lista a la izquierda y detalle a la derecha */
+.dmx__grid-2--side { grid-template-columns: minmax(0, 320px) minmax(0, 1fr); align-items: start; }
+@media (max-width: 860px) { .dmx__grid-2--side { grid-template-columns: 1fr; } }
+.dmx__grid-2 > *, .dmx__grid-3 > * { min-width: 0; }
+
+.dmx__access { display: grid; gap: 22px; padding: clamp(18px, 4vw, 36px); }
+.dmx__section > .dmx__access { max-width: 860px; }
+.dmx__access-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; }
+
+.app-footer {
+  position: relative; z-index: 5; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 24px;
+  padding: 18px clamp(12px, 5vw, 40px); border-top: 1px dotted var(--ln);
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mut);
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+}
+
+/* ---------- Piezas propias ---------- */
+/* una sola columna que puede encoger: sin esto, un hijo ancho (las pestañas) ensancha la página en móvil */
+.stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; min-width: 0; align-content: start; }
+.stack > * { min-width: 0; }
+.stack--lg { gap: 26px; }
+.stack--sm { gap: 8px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.between { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px; }
+.center { display: grid; place-items: center; padding: 32px 0; }
+.muted { color: var(--mut); }
+.small { font-size: 13px; }
+.break { overflow-wrap: anywhere; }
+.label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--mut); }
+.label a { color: inherit; }
+.label a:hover { color: var(--acc); }
+
+/* Los componentes de trama-ui traen un ancho máximo pensado para ir sueltos; aquí ocupan su columna. */
+.wide, .dmx .ui-field, .dmx .ui-select { width: 100%; max-width: none; }
+
+.surface { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; padding: clamp(16px, 2.5vw, 22px); min-width: 0; }
+.surface > * { min-width: 0; }
+/* el texto corrido dentro de una superficie no hereda las mayúsculas de la variante (botones e insignias sí las llevan) */
+.surface, .dmx__access { text-transform: none; letter-spacing: normal; }
+.surface__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.surface__title { margin: 0; font-size: 18px; line-height: 1.25; overflow-wrap: anywhere; }
+
+.page-title { margin: 0; font-family: var(--display); font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; font-size: clamp(22px, 4vw, 36px); line-height: 1.1; overflow-wrap: anywhere; }
+
+.controls { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); align-items: start; }
+.controls--wide { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+
+/* ---------- Pestañas del estudio ---------- */
+.study-head { padding-bottom: 0; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; border-bottom: 1px dotted var(--ln); scrollbar-width: none; margin-top: 6px; }
+.tabs__tab {
+  flex: none; padding: 10px 14px; font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--mut); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.tabs__tab:hover { color: var(--fg); }
+.tabs__tab.is-active { color: var(--fg); border-bottom-color: var(--acc); }
+
+/* ---------- Cifras ---------- */
+.stat-row { margin: 0; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr)); }
+.stat { display: grid; gap: 6px; padding: 16px 18px; }
+.stat__value { margin: 0; text-transform: none; letter-spacing: 0; font-size: clamp(22px, 2.6vw, 30px); font-weight: 700; line-height: 1.1; color: var(--acc); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+
+.facts { margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+.facts dt { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mut); }
+.facts dd { margin: 0; font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* ---------- Tablas ---------- */
+.th-sort { font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+.th-sort:hover, .th-sort:focus-visible { color: var(--acc); }
+/* punto lleno = keyword principal; hueco = el resto */
+.dot { display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; border: 1px solid var(--mut); }
+.dot--main { background: var(--acc); border-color: var(--acc); }
+.score { color: var(--acc); font-variant-numeric: tabular-nums; }
+
+/* ---------- Barras ---------- */
+.bars { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.bars__row { display: grid; grid-template-columns: minmax(0, 38%) minmax(40px, 1fr) auto; gap: 12px; align-items: center; font-size: 13px; }
+.bars__label { overflow-wrap: anywhere; line-height: 1.3; }
+.bars__note { display: block; font-size: 11px; color: var(--mut); }
+.bars__track { height: 12px; background: color-mix(in srgb, var(--fg) 9%, transparent); }
+.bars__fill { display: block; height: 100%; background: color-mix(in srgb, var(--fg) 62%, var(--bg)); }
+.bars__fill--acc { background: var(--acc); }
+.bars__value { min-width: 72px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 500; white-space: nowrap; }
+@media (max-width: 520px) {
+  .bars__row { grid-template-columns: 1fr auto; }
+  .bars__track { grid-column: 1 / -1; order: 3; }
+}
+
+.clusters { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
+.cluster { display: grid; gap: 10px; align-content: start; padding: 16px; border: 1px dotted var(--ln); background: color-mix(in srgb, var(--bg) 82%, transparent); }
+.cluster__head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.cluster__term { margin: 0; font-size: 16px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ---------- Matriz de oportunidad (SVG) ---------- */
+.chart-scroll { overflow-x: auto; max-width: 100%; }
+/* dentro de una superficie dotmatrix el texto hereda mayúsculas, espaciado y resplandor: en un gráfico estorban */
+.svg-chart { display: block; width: 100%; min-width: 560px; height: auto; font-family: var(--font); text-transform: none; letter-spacing: normal; text-shadow: none; }
+.svg-chart__frame { fill: none; stroke: var(--ln); }
+.svg-chart__grid { fill: none; stroke: var(--ln); stroke-dasharray: 1 5; }
+.svg-chart__split { stroke: var(--mut); stroke-dasharray: 4 4; }
+.svg-chart__zone { fill: color-mix(in srgb, var(--acc) 10%, transparent); }
+.svg-chart__tick { fill: var(--mut); font-size: 11px; }
+.svg-chart__axis { fill: var(--fg); font-size: 11px; }
+.svg-chart__quadrant { fill: var(--mut); font-size: 10.5px; letter-spacing: 0.06em; }
+.svg-chart__quadrant--acc { fill: var(--acc); font-weight: 700; }
+.svg-chart__point { fill: color-mix(in srgb, var(--fg) 45%, var(--bg)); stroke: var(--bg); stroke-width: 2; cursor: help; }
+.svg-chart__point--main { fill: var(--acc); }
+.svg-chart__point--ranked { fill: var(--fg); }
+.svg-chart__point--main.svg-chart__point--ranked { fill: var(--acc); }
+.svg-chart__point:hover { stroke: var(--acc); }
+.svg-chart__rank { fill: var(--bg); font-size: 10px; font-weight: 700; pointer-events: none; }
+.matrix-key { margin: 0; padding-left: 28px; display: grid; gap: 4px 28px; font-size: 13px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+.matrix-key li::marker { font-weight: 700; color: var(--acc); }
+
+/* ---------- Plan de acción y listas ---------- */
+.tasks { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.task { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px; padding: 16px; border: 1px dotted var(--ln); background: color-mix(in srgb, var(--bg) 82%, transparent); }
+.task__number { font-size: 22px; font-weight: 700; color: var(--acc); font-variant-numeric: tabular-nums; line-height: 1; }
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.steps > li { display: grid; gap: 4px; justify-items: start; }
+.steps--numbered { padding-left: 22px; list-style: decimal; }
+.steps--numbered > li { display: list-item; }
+.steps--numbered > li::marker { color: var(--acc); font-weight: 700; }
+.plain-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; }
+.downloads { display: grid; gap: 16px; }
+.downloads > div { display: grid; gap: 6px; justify-items: start; }
+
+/* ---------- Auditorías ---------- */
+.checks { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.check { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; align-items: start; }
+.check .ui-badge { justify-self: start; }
+@media (max-width: 520px) { .check { grid-template-columns: 1fr; gap: 4px; } }
+
+.page-item { gap: 10px; padding: 14px; }
+.page-item.is-open { border-style: solid; border-color: var(--acc); }
+.page-item__open { font: inherit; font-weight: 700; text-align: left; color: var(--fg); background: none; border: 0; padding: 0; cursor: pointer; }
+.page-item__open:hover { color: var(--acc); }
+
+/* El brief y la guía se pintan con `Prose` de trama-ui: aquí solo se ajusta a la superficie */
+.surface .ui-prose { max-width: none; text-transform: none; letter-spacing: normal; }
+.surface .ui-prose :is(h1, h2, h3) { text-transform: none; letter-spacing: 0; }
+.brief.ui-prose h1 { font-size: 1.3em; }
+
+@media print {
+  .no-print, .dmx__nav, .dmx__bg, .app-footer { display: none !important; }
+  body, .dmx { background: #fff; color: #000; }
+}
+
+/* ---------- Tendencias ---------- */
+.svg-chart--trend { min-width: 320px; }
+.svg-chart__line { fill: none; stroke: var(--acc); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.svg-chart__area { fill: color-mix(in srgb, var(--acc) 12%, transparent); stroke: none; }
+.svg-chart__peak { fill: var(--fg); stroke: var(--bg); stroke-width: 2; }
+.svg-chart__hit { fill: transparent; cursor: crosshair; }
+.svg-chart__hit:hover { fill: color-mix(in srgb, var(--fg) 12%, transparent); }
+
+.trend-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+.trend-card { gap: 10px; }
+.trend-card__title { margin: 0; font-size: 16px; text-transform: none; letter-spacing: 0; overflow-wrap: anywhere; }
+
+.season { display: grid; gap: 4px; }
+.season__plot { position: relative; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; height: 96px; align-items: end; }
+.season__col { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; cursor: help; }
+.season__value { font-size: 10px; text-align: center; color: var(--mut); font-variant-numeric: tabular-nums; line-height: 1.4; }
+.season__bar { display: block; background: color-mix(in srgb, var(--fg) 38%, var(--bg)); border-radius: 2px 2px 0 0; }
+.season__bar--peak { background: var(--acc); }
+.season__mean { position: absolute; left: 0; right: 0; border-top: 1px dashed var(--mut); pointer-events: none; }
+.season__axis { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; font-size: 10px; text-align: center; color: var(--mut); }
+.season__now { color: var(--fg); font-weight: 700; text-decoration: underline; }
+
+.calendar { width: 100%; min-width: 720px; border-collapse: separate; border-spacing: 2px; font-size: 12px; text-transform: none; letter-spacing: 0; }
+.calendar th { font-weight: 500; color: var(--mut); padding: 4px 6px; text-align: center; white-space: nowrap; }
+.calendar tbody th { text-align: left; color: var(--fg); font-weight: 700; white-space: normal; min-width: 150px; max-width: 220px; overflow-wrap: anywhere; }
+.calendar__year { margin-left: 3px; font-size: 10px; opacity: 0.7; }
+.calendar__now { color: var(--fg) !important; font-weight: 700 !important; text-decoration: underline; }
+.calendar td { height: 46px; min-width: 44px; padding: 3px; text-align: center; vertical-align: middle; cursor: help;
+  background: color-mix(in srgb, var(--acc) calc(var(--heat) * 55%), color-mix(in srgb, var(--fg) 6%, transparent)); }
+.calendar td.calendar__peak { outline: 2px solid var(--acc); outline-offset: -2px; }
+.calendar__marks { display: block; min-height: 15px; font-weight: 700; color: var(--fg); }
+.calendar__index { display: block; font-size: 10px; color: var(--fg); opacity: 0.75; font-variant-numeric: tabular-nums; }
+
+/* ---------- Auditoría de sitio ---------- */
+.issues { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.issue { display: grid; gap: 6px; padding: 14px; border: 1px dotted var(--ln); background: color-mix(in srgb, var(--bg) 82%, transparent); }
+.issue__url { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.link-button { font: inherit; font-size: 12px; color: var(--acc); background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; }
+.details > summary { cursor: pointer; color: var(--acc); font-size: 13px; padding: 6px 0; }

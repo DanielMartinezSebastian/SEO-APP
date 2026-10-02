@@ -1,9 +1,10 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { createObjectCsvWriter } from 'csv-writer';
+import { RESULTS_DIR } from '../config.js';
 
 export class ExportService {
-  constructor(baseDir = './data/results') {
+  constructor(baseDir = RESULTS_DIR) {
     this.baseDir = baseDir;
   }
 
@@ -21,7 +22,7 @@ export class ExportService {
   async exportToCSV(summary, filename) {
     await this.ensureDirectory();
     const filepath = path.join(this.baseDir, `${filename}.csv`);
-    
+
     const csvWriter = createObjectCsvWriter({
       path: filepath,
       header: [
@@ -36,7 +37,7 @@ export class ExportService {
         { id: 'errors', title: 'Errores' }
       ]
     });
-    
+
     await csvWriter.writeRecords(summary);
     return filepath;
   }
@@ -45,10 +46,10 @@ export class ExportService {
     const timestamp = customTimestamp || new Date().toISOString().replace(/[:.]/g, '-').slice(0, -1);
     const results = analyzer.getResults();
     const summary = analyzer.getSummary();
-    
+
     const jsonPath = await this.exportToJSON(results, `seo_report_full_${timestamp}`);
     const csvPath = await this.exportToCSV(summary, `seo_report_summary_${timestamp}`);
-    
+
     return { jsonPath, csvPath };
   }
 }
