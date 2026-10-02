@@ -87,6 +87,17 @@ Se auditó por su sitemap un sitio Next.js servido en `localhost:3000` (34 URLs)
 
 **Sigue sin resolver:** los endpoints no son oficiales y pueden dejar de responder; el índice no es volumen; las keywords pequeñas no tienen datos.
 
+### H. Un sitio con varios públicos — programador freelance orientado a negocio
+
+Proyecto con tres targets sobre un sitio en `localhost:3000`: desarrollo web, automatización de procesos y consultoría.
+
+- Prioridad: automatización (95) por delante de desarrollo web (91) y consultoría (78): menos volumen por keyword, pero menos competencia y CPC más alto.
+- Detecta la página de cada target por su URL (`/servicios/software-de-gestion-a-medida`, `/servicios/diseno-web-a-medida`) y que consultoría no tiene ninguna.
+- 10 keywords repetidas entre «desarrollo web» y «consultoría» (todas las variantes de «programador freelance»): la herramienta avisa de que quizá sean el mismo público. Es justo la decisión que hay que tomar antes de crear páginas.
+- Primera pasada: el plan repetía «crear la página» dos veces para el target sin página. **Corregido.**
+
+**Sigue sin resolver:** la página de cada target se deduce de las palabras de la URL; si la URL no nombra el servicio hay que indicarla a mano (`--page`). El informe del proyecto sale en Markdown, no en PDF. La prioridad comprime mucho la demanda (escala logarítmica): dos targets con volúmenes parecidos quedan casi empatados.
+
 ## Veredicto
 
 **Sirve para:** preparar un estudio de keywords con criterio (qué atacar, cómo agruparlo, qué intención tiene),
@@ -107,10 +118,11 @@ fuente con API.
 |---|---|
 | Gráficos que se entiendan | Barras con etiqueta y valor, matriz con cuadrantes rotulados y leyenda numerada, temas en bloques |
 | Navegación útil | Barra con Estudios, Auditar URL, Guía y «Nuevo estudio»; pestañas dentro del estudio en orden de trabajo |
-| Uso desde terminal y por agentes | CLI con `--json`, servidor MCP con 13 herramientas, API REST |
+| Uso desde terminal y por agentes | CLI con `--json`, servidor MCP con 18 herramientas y una skill para Claude, API REST |
 | Informe entregable | PDF generado (no impresión de página): portada, resumen, plan, matriz, briefs, mapa, auditorías, metodología; marca por estudio. También Markdown y CSV |
 | Probada contra problemas reales | Cuatro casos, con las correcciones anteriores |
 | Usable en privado por una agencia | Acceso con contraseña (`SEO_AUTH`), estudios en archivos, sin servicios externos propios |
+| Sitios con varios públicos | Proyectos con un target por público: prioridad, solapes, página de cada uno, plan conjunto |
 | Dominio del cliente real, no adivinado | La ficha del estudio lleva el sitio; se consultan sus datos y su sitemap |
 
 ## Pendiente, por orden de valor

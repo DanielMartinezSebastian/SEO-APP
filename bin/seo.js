@@ -5,6 +5,8 @@ import fs from 'fs/promises';
 import path from 'path';
 import Table from 'cli-table3';
 import * as studies from '../src/services/studyService.js';
+import * as projects from '../src/services/projectService.js';
+import { projectToMarkdown } from '../shared/project.js';
 import { INTENT_LABELS, TYPE_LABELS } from '../shared/insights.js';
 import { planToMarkdown } from '../shared/plan.js';
 import { describeTrend, trendsToMarkdown } from '../shared/seasonality.js';
@@ -21,6 +23,17 @@ Estudios
   seo show [estudio]                       Resumen y conclusiones
   seo set [estudio] --client "…" …         Cambia la ficha (nombre, cliente, sitio, autor, notas, accent #rrggbb)
   seo delete <estudio> --yes               Borra el estudio y sus archivos
+
+Proyectos (un sitio con varios targets: públicos o líneas de negocio)
+  seo projects                             Lista los proyectos
+  seo project new "Nombre" [--site dominio|localhost:3000 --client "…"]
+  seo project target [proyecto] "Nombre del target" --keywords "kw1, kw2" [--audience "a quién va" --page /ruta]
+      Crea el estudio del target (o enlaza uno existente con --study archivo)
+  seo project show [proyecto]              Prioridad de targets, solapes, páginas, conclusiones
+  seo project plan [proyecto]              Plan de acción conjunto
+  seo project site [proyecto] [--pages 40] Audita el sitio por su sitemap y sitúa cada target en sus páginas
+  seo project report [proyecto] [--out ruta]   Informe del proyecto en Markdown
+  seo project delete <proyecto> --yes      Borra el proyecto (conserva sus estudios)
 
 Análisis
   seo keywords [estudio]                   Keywords por puntuación
@@ -153,6 +166,69 @@ const commands = {
     if (!rest[0] || !flags.yes) throw new Error('Indica el estudio y confirma con --yes: seo delete <estudio> --yes');
     const deleted = await studies.deleteStudy(await study(rest[0]));
     emit(deleted, () => `Eliminado ${deleted.json}`);
+  },
+
+  async projects() {
+    const list = await projects.listProjects();
+    emit(list, () => (list.length === 0
+      ? 'No hay proyectos. Crea uno con: seo project new "Nombre" --site dominio.com'
+      : table(['Proyecto', 'Sitio', 'Targets', 'Keywords', 'Búsquedas', 'Id'], list.map((item) => [item.name, item.site || '—', item.targets.map((target) => target.name).join('\n') || '—', item.totals.keywords, int(item.totals.volume), item.id]))));
+  },
+
+  async project() {
+    const [action, ...args] = rest;
+    const showView = ({ project, view }) => [
+      `${project.name}  (${project.id})${project.site ? ` · ${project.site}` : ''}`,
+      `${view.totals.targets} targets · ${view.totals.keywords} keywords · ${int(view.totals.volume)} búsquedas al mes`,
+      '',
+      view.targets.length ? table(['N.º', 'Target', 'Búsquedas', 'Vict. rápidas', 'Comp.', 'Facilidad', 'Prioridad', 'Página'],
+        view.targets.map((target) => [target.priority, target.name, int(target.totals.volume), target.quickWins, percent(target.avgCompetition), `${target.ease}/100`, `${target.priorityScore}/100`, target.page ? target.page.replace(/^https?:\/\/[^/]+/, '') || '/' : (target.coverage === null ? '—' : 'sin página')]))
+        : 'Sin targets. Añade uno con: seo project target "Nombre" --keywords "kw1, kw2"',
+      '',
+      ...view.findings.map((finding) => `• ${finding.title}. ${finding.text}`),
+      view.overlaps.length ? `\nKEYWORDS REPETIDAS\n${table(['Keyword', 'Búsquedas', 'Targets', 'Asignar a'], view.overlaps.slice(0, 15).map((entry) => [entry.keyword, int(entry.volume), entry.targets.join(', '), entry.suggestedOwner]))}` : ''
+    ].join('\n').trim();
+
+    if (action === 'new') {
+      const created = await projects.createProject({ ...flags, name: args[0] });
+      return emit(created, () => `Proyecto creado: ${created.name} (${created.id}). Añade targets con: seo project target ${created.id} "Nombre" --keywords "kw1, kw2"`);
+    }
+    if (action === 'target') {
+      // seo project target "Nombre"   o   seo project target <proyecto> "Nombre"
+      const [reference, name] = args.length >= 2 ? args : [undefined, args[0]];
+      const keywords = typeof flags.keywords === 'string' ? flags.keywords.split(',').map((keyword) => keyword.trim()).filter(Boolean) : [];
+      if (keywords.length) info(`Creando el estudio del target (${keywords.length} keywords, unos ${keywords.length * 5} s)…`);
+      const result = await projects.addTarget(await projects.resolveProject(reference), {
+        name, audience: typeof flags.audience === 'string' ? flags.audience : undefined, page: typeof flags.page === 'string' ? flags.page : undefined,
+        keywords, studies: typeof flags.study === 'string' ? [await study(flags.study)] : [], country: typeof flags.country === 'string' ? flags.country : undefined, language: typeof flags.language === 'string' ? flags.language : undefined
+      });
+      return emit(result, showView);
+    }
+    if (action === 'site') {
+      info('Leyendo el sitemap y comprobando las páginas…');
+      const result = await projects.runProjectSiteAudit(await projects.resolveProject(args[0]), { allowLocal: true, pages: Number(flags.pages) || undefined });
+      return emit(result, (data) => `Sitio auditado: ${data.project.siteAudit.score}/100 · ${data.project.siteAudit.checked} de ${data.project.siteAudit.sitemap.total} URLs\n\n${showView(data)}`);
+    }
+    if (action === 'plan') {
+      const { view } = await projects.getProject(await projects.resolveProject(args[0]));
+      return emit(view.plan, () => view.plan.map((task) => `${task.priority}. [${task.area}${task.target ? ` · ${task.target}` : ''} · impacto ${task.impact}] ${task.title}\n   Por qué: ${task.why}\n   Cómo: ${task.how}`).join('\n\n') || 'Sin tareas: añade targets con estudio.');
+    }
+    if (action === 'report') {
+      const data = await projects.getProject(await projects.resolveProject(args[0]));
+      const markdown = projectToMarkdown(data.project, data.view);
+      if (!flags.out) return out(markdown);
+      await fs.writeFile(path.resolve(flags.out), markdown);
+      return emit({ file: path.resolve(flags.out) }, () => `Informe guardado en ${path.resolve(flags.out)}`);
+    }
+    if (action === 'delete') {
+      if (!args[0] || !flags.yes) throw new Error('Indica el proyecto y confirma con --yes: seo project delete <proyecto> --yes');
+      const deleted = await projects.deleteProject(args[0]);
+      return emit(deleted, () => `Proyecto ${deleted.id} eliminado (sus estudios se conservan)`);
+    }
+    if (action === 'show' || !action) {
+      return emit(await projects.getProject(await projects.resolveProject(args[0])), showView);
+    }
+    throw new Error('Uso: seo project new|target|show|plan|site|report|delete (ver seo help)');
   },
 
   async keywords() {

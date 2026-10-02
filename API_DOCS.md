@@ -117,6 +117,46 @@ color del PDF). Al cambiar `site` se renuevan sus datos y se descarta el sitemap
 ### `DELETE /api/seo/report/:filename`
 Borra el estudio con su CSV, su ficha y sus auditorías.
 
+## Proyectos
+
+Un proyecto es un sitio con varios targets (públicos), cada uno con uno o más estudios. `:id` son 8 caracteres hexadecimales.
+
+| Método y ruta | Qué hace |
+|---|---|
+| `GET /api/seo/projects` | Lista los proyectos con sus targets por prioridad |
+| `POST /api/seo/projects` | Crea uno: `{ name, client?, site?, author?, notes? }` → `201 { project }` |
+| `GET /api/seo/projects/:id` | `{ project, view }`; con `?format=md`, el informe en Markdown (`&download` lo adjunta) |
+| `PATCH /api/seo/projects/:id` | Cambia la ficha. Al cambiar el sitio se descartan su sitemap y su auditoría |
+| `DELETE /api/seo/projects/:id` | Borra el proyecto; sus estudios se conservan |
+| `POST /api/seo/projects/:id/targets` | `{ name, audience?, page?, keywords?, studies?, country?, language? }`. Con `keywords` crea el estudio del target (≈5 s por keyword) |
+| `PATCH /api/seo/projects/:id/targets/:targetId` | Cambia nombre, público, página o estudios |
+| `DELETE /api/seo/projects/:id/targets/:targetId` | Quita el target; sus estudios se conservan |
+| `POST /api/seo/projects/:id/site-audit` | Audita el sitio por su sitemap (`{ pages? }`) y guarda sus URLs |
+
+`view` contiene:
+
+```json
+{
+  "totals": { "targets": 3, "studies": 3, "keywords": 167, "volume": 12900, "urls": 34 },
+  "targets": [{
+    "id": "…", "name": "Automatización", "priority": 1, "priorityScore": 95,
+    "priorityParts": { "demand": 100, "ease": 87, "value": 100 },
+    "totals": { "keywords": 60, "volume": 5770 }, "quickWins": 1, "avgCompetition": 0.25, "avgCpc": 5.85,
+    "mainKeywords": ["…"], "topOpportunities": [{ "keyword": "…", "volume": 720, "score": 89 }],
+    "page": "http://localhost:3000/servicios/…", "pageSource": "detected", "coverage": 25, "gaps": ["…"],
+    "studies": [{ "filename": "seo_report_full_….json", "name": "…" }], "missingStudies": [], "trends": null
+  }],
+  "overlaps": [{ "keyword": "…", "volume": 260, "targets": ["A", "B"], "suggestedOwner": "A" }],
+  "pages": [{ "url": "…", "path": "/…", "shared": false, "targets": [{ "name": "A", "keywords": ["…"] }] }],
+  "calendar": [{ "month": 9, "year": 2026, "publish": [{ "target": "A", "keyword": "…" }], "campaigns": [], "peaks": [] }],
+  "findings": [{ "level": "success", "title": "…", "text": "…" }],
+  "plan": [{ "priority": 1, "area": "Arquitectura", "target": "A", "impact": "alto", "effort": "medio", "title": "…", "why": "…", "how": "…" }]
+}
+```
+
+`page` es `null` cuando ninguna URL del sitemap trata las keywords principales del target; `coverage` es `null`
+mientras no se haya auditado el sitio.
+
 ## Análisis
 
 ### `GET /api/seo/report/:filename/insights`

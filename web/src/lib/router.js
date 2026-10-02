@@ -32,6 +32,8 @@ export function useRoute() {
 export const studyUrl = (filename, tab = 'resumen') =>
   `/study?filename=${encodeURIComponent(filename)}${tab === 'resumen' ? '' : `&tab=${tab}`}`;
 
+export const projectUrl = (id) => `/project?id=${encodeURIComponent(id)}`;
+
 // Los botones con `href` de trama-ui son enlaces reales: se interceptan los clics normales para
 // navegar sin recargar, y se deja al navegador el clic central, Ctrl+clic y las descargas.
 export function interceptLinkClicks(event) {

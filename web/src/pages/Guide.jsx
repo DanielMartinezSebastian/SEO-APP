@@ -59,6 +59,16 @@ El volumen de una keyword es una media: no dice si se busca sobre todo en diciem
 > [!NOTE] Límites
 > El índice de Trends va de 0 a 100 por keyword: no es volumen ni sirve para comparar keywords. Google limita las consultas, así que el resultado se guarda; si se corta, «Reintentar» pide solo lo que falta. Las búsquedas muy pequeñas no tienen datos.
 
+## Proyectos: un sitio, varios públicos
+
+Si el sitio tiene varios servicios, categorías o tipos de cliente, crea un **proyecto** desde el panel y añade un **target** por público, con las keywords que usaría ese público. El proyecto compara los targets y responde:
+
+- **¿Por cuál empiezo?** Prioridad de 0 a 100 según demanda, facilidad y valor comercial.
+- **¿Se pisan?** Keywords que aparecen en más de un target, con el target al que conviene asignarlas.
+- **¿Qué página atiende a cada uno?** Tras auditar el sitio, la página de aterrizaje de cada target, los que no tienen y las páginas compartidas.
+
+La regla: un target, una intención, una página. La portada reparte; no intenta posicionar para todos.
+
 ## Desde terminal
 
 Todo lo que hace la interfaz se puede hacer con la orden \`seo\`:

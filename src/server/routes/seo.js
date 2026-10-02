@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { RESULTS_DIR } from '../../config.js';
 import * as studies from '../../services/studyService.js';
+import * as projects from '../../services/projectService.js';
 import { NotFoundError } from '../../services/studyService.js';
 import { briefToMarkdown } from '../../../shared/brief.js';
 import { planToMarkdown } from '../../../shared/plan.js';
@@ -109,6 +110,59 @@ router.post('/analyze-suggestions', route('Error analizando sugerencias', async 
     updated: result.updated,
     data: result.report
   });
+}));
+
+// ---------- Proyectos: un sitio con varios targets ----------
+
+// GET /api/seo/projects - Listar los proyectos
+router.get('/projects', route('Error al listar proyectos', async (req, res) => {
+  res.json({ success: true, projects: await projects.listProjects() });
+}));
+
+// POST /api/seo/projects - Crear un proyecto ({ name, client?, site?, author?, notes? })
+router.post('/projects', route('Error al crear el proyecto', async (req, res) => {
+  res.status(201).json({ success: true, project: await projects.createProject(req.body || {}) });
+}));
+
+// GET /api/seo/projects/:id - El proyecto y su vista combinada (?format=md para el informe en Markdown)
+router.get('/projects/:id', route('Error al leer el proyecto', async (req, res) => {
+  if (wantsMarkdown(req)) {
+    if (req.query.download !== undefined) attachment(res, 'text/markdown; charset=utf-8', `proyecto_seo_${req.params.id}.md`);
+    else res.type('text/markdown');
+    return res.send(await projects.exportProjectMarkdown(req.params.id));
+  }
+  res.json({ success: true, ...(await projects.getProject(req.params.id)) });
+}));
+
+// PATCH /api/seo/projects/:id - Cambiar nombre, cliente, sitio, autor o notas
+router.patch('/projects/:id', route('Error al guardar el proyecto', async (req, res) => {
+  await projects.updateProject(req.params.id, req.body || {});
+  res.json({ success: true, ...(await projects.getProject(req.params.id)) });
+}));
+
+// DELETE /api/seo/projects/:id - Eliminar el proyecto (sus estudios se conservan)
+router.delete('/projects/:id', route('Error al eliminar el proyecto', async (req, res) => {
+  res.json({ success: true, deleted: await projects.deleteProject(req.params.id) });
+}));
+
+// POST /api/seo/projects/:id/targets - Añadir un target ({ name, audience?, page?, keywords?, studies? })
+router.post('/projects/:id/targets', route('Error al añadir el target', async (req, res) => {
+  res.status(201).json({ success: true, ...(await projects.addTarget(req.params.id, req.body || {})) });
+}));
+
+// PATCH /api/seo/projects/:id/targets/:targetId - Cambiar nombre, público, página o estudios de un target
+router.patch('/projects/:id/targets/:targetId', route('Error al guardar el target', async (req, res) => {
+  res.json({ success: true, ...(await projects.updateTarget(req.params.id, req.params.targetId, req.body || {})) });
+}));
+
+// DELETE /api/seo/projects/:id/targets/:targetId - Quitar un target (sus estudios se conservan)
+router.delete('/projects/:id/targets/:targetId', route('Error al quitar el target', async (req, res) => {
+  res.json({ success: true, ...(await projects.removeTarget(req.params.id, req.params.targetId)) });
+}));
+
+// POST /api/seo/projects/:id/site-audit - Auditar el sitio del proyecto por su sitemap ({ pages? })
+router.post('/projects/:id/site-audit', route('Error al auditar el sitio', async (req, res) => {
+  res.status(201).json({ success: true, ...(await projects.runProjectSiteAudit(req.params.id, { allowLocal: canAuditLocal(req), pages: Number(req.body?.pages) || undefined })) });
 }));
 
 // ---------- Lecturas derivadas (pensadas para agentes e integraciones) ----------

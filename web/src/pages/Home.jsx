@@ -3,7 +3,7 @@ import { Alert, Badge, Button, Modal, SectionHeader, Timeline } from 'trama-ui';
 import { Loading, StatRow, Surface, useNotify, VARIANT } from '../components/ui.jsx';
 import * as api from '../lib/api.js';
 import { formatCompact, formatDate, formatNumber, truncate } from '../lib/format.js';
-import { studyUrl } from '../lib/router.js';
+import { projectUrl, studyUrl } from '../lib/router.js';
 
 function StudyCard({ study, onDelete }) {
   return (
@@ -33,6 +33,7 @@ function StudyCard({ study, onDelete }) {
 export default function Home() {
   const notify = useNotify();
   const [studies, setStudies] = useState(null);
+  const [projects, setProjects] = useState([]);
   const [error, setError] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
 
@@ -40,6 +41,8 @@ export default function Home() {
     setError('');
     try {
       setStudies(await api.listStudies());
+      // los proyectos son un extra del panel: si fallan, los estudios se siguen viendo
+      setProjects(await api.listProjects().catch(() => []));
     } catch (err) {
       setError(err.message);
       setStudies([]);
@@ -66,6 +69,40 @@ export default function Home() {
 
   return (
     <>
+      <section className="dmx__section dmx__section--tight">
+        <div className="stack stack--lg">
+          <div className="between">
+            <SectionHeader kicker="Panel" title="Proyectos" subtitle="Un proyecto es un sitio que se dirige a varios públicos: reúne un estudio por target, los compara y dice qué página atiende a cada uno." align="left" variant={VARIANT} />
+            <Button label="Nuevo proyecto" href="/project/new" glyph="icon:plus" glyphPosition="start" emphasis="secondary" variant={VARIANT} />
+          </div>
+          {projects.length === 0 ? (
+            <div className="muted">Aún no hay proyectos. Si el sitio atiende a un solo público, basta con un estudio; si tiene varios servicios, categorías o tipos de cliente, crea un proyecto.</div>
+          ) : (
+            <div className="dmx__grid-3">
+              {projects.map((project) => (
+                <Surface key={project.id} title={truncate(project.name, 70)}>
+                  <div className="actions">
+                    {project.client && <Badge text={project.client} intent="accent" variant={VARIANT} />}
+                    {project.site && <Badge text={project.site} intent="neutral" variant={VARIANT} />}
+                    {project.siteScore !== null && <Badge text={`Sitio ${project.siteScore}/100`} intent="neutral" variant={VARIANT} />}
+                  </div>
+                  <dl className="facts">
+                    <div><dt>Targets</dt><dd>{project.totals.targets}</dd></div>
+                    <div><dt>Búsquedas/mes</dt><dd>{formatCompact(project.totals.volume)}</dd></div>
+                  </dl>
+                  {project.targets.length > 0 && (
+                    <ol className="plain-list">
+                      {project.targets.map((target) => <li key={target.name}>{target.name} <span className="muted">· {formatCompact(target.volume)}</span></li>)}
+                    </ol>
+                  )}
+                  <div className="actions"><Button label="Abrir" href={projectUrl(project.id)} size="sm" variant={VARIANT} /></div>
+                </Surface>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       <section className="dmx__section dmx__section--tight">
         <div className="stack stack--lg">
           <div className="between">

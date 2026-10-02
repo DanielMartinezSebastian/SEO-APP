@@ -106,6 +106,28 @@ páginas rotas, redirecciones, noindex, canónicas, títulos y descripciones rep
 vacías sin JavaScript. En local, las URLs del sitemap que ya llevan el dominio de producción se comprueban en local
 por la misma ruta. Cada pasada se compara con la anterior y los problemas pasan al plan de acción y al informe.
 
+## Proyectos: un sitio, varios públicos
+
+Una web de servicios o una tienda con varias categorías se dirige a públicos que buscan con palabras distintas.
+Un **proyecto** reúne un estudio por target y los combina:
+
+```bash
+seo project new "Web de servicios" --site localhost:3000
+seo project target "Desarrollo web" --keywords "diseño web para empresas, crear pagina web empresa"
+seo project target "Automatización" --keywords "automatizar procesos empresa, software a medida" --audience "Empresas con tareas repetitivas"
+seo project site        # lee el sitemap y sitúa cada target en sus páginas
+seo project show        # prioridad, solapes, páginas, conclusiones
+seo project plan
+seo project report --out proyecto.md
+```
+
+- **Prioridad** de cada target (0-100): demanda 40 %, facilidad 40 %, valor comercial 20 %.
+- **Solapes:** keywords que aparecen en más de un target, con el target al que conviene asignarlas.
+- **Páginas:** qué URL atiende a cada target, cuáles no tienen página y cuáles se comparten.
+- **Calendario y plan conjuntos**, con lo del sitio y la estructura antes que lo de cada target.
+
+Borrar un proyecto o un target conserva sus estudios. En la interfaz, los proyectos están en el panel de inicio.
+
 ## Tendencias y calendario
 
 `seo trends` (pestaña «Tendencias») consulta Google Trends para las keywords principales y las más buscadas del
@@ -127,9 +149,16 @@ para cualquier cliente compatible:
 }
 ```
 
-Herramientas: `list_studies`, `create_study`, `get_insights`, `get_keywords`, `keyword_map`, `site_audit`, `get_trends`, `content_brief`,
+Herramientas: `list_studies`, `create_study`, `get_insights`, `get_keywords`, `keyword_map`, `site_audit`, `get_trends`, `list_projects`, `create_project`, `add_target`, `project_overview`, `project_site_audit`, `content_brief`,
 `audit_text`, `audit_url`, `action_plan`, `client_report`, `update_study`. Flujos de trabajo y ejemplos en
 [docs/AGENTES.md](docs/AGENTES.md).
+
+### Skill para Claude
+
+`skills/seo-app/SKILL.md` enseña a un agente de Claude el método completo para auditar y mejorar una web durante el
+desarrollo con la CLI. Para usarla en cualquier proyecto, copia la carpeta a `~/.claude/skills/seo-app/` (o a
+`.claude/skills/seo-app/` dentro del repositorio de la web que estés desarrollando) y deja la orden `seo` disponible
+con `npm link` desde esta carpeta.
 
 ## Despliegue privado
 

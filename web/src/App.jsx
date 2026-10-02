@@ -7,6 +7,8 @@ import NewStudy from './pages/NewStudy.jsx';
 import Study from './pages/Study.jsx';
 import AuditTool from './pages/AuditTool.jsx';
 import Guide from './pages/Guide.jsx';
+import NewProject from './pages/NewProject.jsx';
+import Project from './pages/Project.jsx';
 
 const Backdrop = lazy(() => import('./components/Backdrop.jsx'));
 
@@ -17,14 +19,16 @@ const SCENES = {
   '/': 'planet',
   '/new': 'planet',
   '/audit': 'magnifier',
+  '/project': 'target',
+  '/project/new': 'target',
   '/guia': 'page'
 };
-const STUDY_SCENES = { resumen: 'planet', keywords: 'bars', oportunidades: 'target', contenido: 'page', auditoria: 'magnifier', informe: 'page' };
+const STUDY_SCENES = { resumen: 'planet', keywords: 'bars', oportunidades: 'target', tendencias: 'bars', contenido: 'page', auditoria: 'magnifier', informe: 'page' };
 
 // Rutas de versiones anteriores: siguen funcionando y llevan a la pestaña equivalente del estudio
 const LEGACY_TABS = { '/report': 'resumen', '/analytics': 'keywords', '/insights': 'oportunidades', '/content': 'contenido' };
 
-const NAV_LINKS = ['Estudios=/', 'Auditar URL=/audit', 'Guía=/guia'];
+const NAV_LINKS = ['Proyectos y estudios=/', 'Auditar URL=/audit', 'Guía=/guia'];
 const NAV_PATHS = ['/', '/audit', '/guia'];
 
 function useTheme() {
@@ -76,6 +80,12 @@ function Page({ path, params }) {
   if (path === '/new') return <NewStudy />;
   if (path === '/audit') return <AuditTool />;
   if (path === '/guia') return <Guide />;
+  if (path === '/project/new') return <NewProject />;
+  if (path === '/project') {
+    const id = params.get('id');
+    if (!id) return <Notice intent="danger" title="Falta el proyecto" message="No se especificó qué proyecto mostrar." />;
+    return <Project key={id} id={id} />;
+  }
 
   if (path === '/study') {
     if (!filename) return <Notice intent="danger" title="Falta el estudio" message="No se especificó qué estudio mostrar." />;
@@ -101,7 +111,7 @@ export default function App() {
   }, [legacyTab, route.params]);
 
   const scene = route.path === '/study' ? STUDY_SCENES[route.params.get('tab') || 'resumen'] : SCENES[route.path];
-  const activeLink = route.path === '/study' || route.path === '/new' ? 0 : Math.max(0, NAV_PATHS.indexOf(route.path));
+  const activeLink = route.path === '/study' || route.path === '/new' || route.path.startsWith('/project') ? 0 : Math.max(0, NAV_PATHS.indexOf(route.path));
 
   return (
     <ToastProvider>

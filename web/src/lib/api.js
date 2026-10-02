@@ -46,6 +46,19 @@ export const deleteStudy = (filename) => request(studyPath(filename), { method: 
 
 export const completeSuggestions = (filename) => request('/analyze-suggestions', json('POST', { filename }));
 
+// ---------- Proyectos (un sitio con varios targets) ----------
+
+export const listProjects = () => request('/projects').then((result) => result.projects || []);
+export const createProject = (input) => request('/projects', json('POST', input)).then((result) => result.project);
+// { project, view }: la ficha y la vista combinada de sus targets
+export const getProject = (id) => request(`/projects/${id}`);
+export const updateProject = (id, input) => request(`/projects/${id}`, json('PATCH', input));
+export const deleteProject = (id) => request(`/projects/${id}`, { method: 'DELETE' });
+export const addTarget = (id, input) => request(`/projects/${id}/targets`, json('POST', input));
+export const removeTarget = (id, targetId) => request(`/projects/${id}/targets/${targetId}`, { method: 'DELETE' });
+export const runProjectSiteAudit = (id) => request(`/projects/${id}/site-audit`, json('POST', {}));
+export const projectMarkdownUrl = (id) => `${BASE_URL}/projects/${id}?format=md&download`;
+
 // ---------- Auditorías ----------
 
 export const auditUrl = (input) => request('/audit/url', json('POST', input)).then((result) => result.result);

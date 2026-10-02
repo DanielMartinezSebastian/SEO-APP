@@ -35,6 +35,11 @@ El servidor habla por stdio. Todo lo que no es protocolo (progreso del análisis
 | `action_plan` | Tareas priorizadas en Markdown |
 | `client_report` | Informe completo en Markdown |
 | `update_study` | Cambia la ficha: nombre, cliente, sitio, autor, notas |
+| `list_projects` | Proyectos (un sitio con varios targets) con sus targets por prioridad |
+| `create_project` | Crea un proyecto vacío para un sitio que atiende a varios públicos |
+| `add_target` | Añade un público al proyecto; con `keywords` crea su estudio, con `studies` enlaza existentes |
+| `project_overview` | Prioridad de targets, página de cada uno, keywords repetidas, páginas compartidas, calendario, conclusiones y plan (`format: "markdown"` para el informe) |
+| `project_site_audit` | Audita el sitio del proyecto por su sitemap y sitúa cada target en sus páginas |
 
 `study` acepta el nombre de archivo o `latest`. Un fallo se devuelve como resultado con `isError: true` y el motivo
 en texto, para que el agente pueda corregir la llamada.
@@ -67,6 +72,15 @@ problemas de gravedad alta → `audit_url` de las páginas clave.
 Para planificar: `get_trends` → leer `findings` y `calendar` → `action_plan` (ya incluye las tareas de temporada).
 `get_trends` guarda su resultado; no lo llames en bucle, Google limita las peticiones. La metodología completa está
 en [METODOLOGIA.md](METODOLOGIA.md).
+
+Sitio con varios públicos (servicios, categorías de tienda): `create_project` → un `add_target` por público, con las
+keywords que usaría **ese** público → `project_site_audit` → `project_overview`. Lee `targets[].priority` para
+decidir el orden, `targets[].page` (`null` = falta la página de aterrizaje) y `overlaps` (asigna cada keyword repetida
+a `suggestedOwner`). Dentro de cada target se trabaja como en un estudio normal, con el nombre de archivo que
+devuelve `targets[].studies`. `project` acepta el identificador o `latest`.
+
+Los agentes de Claude tienen además la skill [skills/seo-app/SKILL.md](../skills/seo-app/SKILL.md), que describe
+el método paso a paso con la CLI.
 
 ## CLI
 

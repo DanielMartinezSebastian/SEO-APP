@@ -101,6 +101,26 @@ Cruce: consultas en auge × CPC × intención × estacionalidad.
 - **Preguntas recurrentes** sobre uso, limpieza o averías → contenido de posventa, y a veces un servicio
   (recambios, mantenimiento, formación).
 
+## Sitios con varios públicos
+
+Lo anterior vale para un público. Una web de servicios o una tienda tiene varios, y entonces hay una pregunta
+previa: **cómo se reparten las páginas**. La regla es un target = una intención = una página de aterrizaje.
+
+1. **Un target por público**, no por servicio del catálogo: si dos servicios los busca la misma gente con las
+   mismas palabras, son un target. La señal son las keywords repetidas: muchas coincidencias entre dos targets
+   indican que son el mismo.
+2. **Keywords de cada target en su idioma**: quien quiere una web busca el servicio; quien tiene un problema de
+   procesos busca el problema. La cobertura de tendencias lo confirma target a target.
+3. **Prioridad**: demanda (40 %), facilidad (40 %) y valor comercial (20 %). Se trabaja un target hasta tener su
+   página, sus contenidos y su auditoría en verde, y después el siguiente.
+4. **Arquitectura**: portada que reparte; una página por target; contenido de apoyo que enlaza a su página. Cada
+   keyword repetida se asigna a un solo target y los demás enlazan.
+5. **Sitio**: la auditoría por sitemap dice qué target tiene ya página, cuál no y cuál comparte una.
+6. **Calendario conjunto**: si todos los targets tienen el pico en la misma época, el negocio depende de una
+   temporada; si se complementan, se encadenan campañas.
+
+En la app: `seo project …` o «Nuevo proyecto» en el panel.
+
 ## El ciclo
 
 1. **Estudio** con 2 a 6 keywords principales (`seo new`).

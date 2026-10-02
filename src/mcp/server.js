@@ -4,6 +4,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import * as studies from '../services/studyService.js';
+import * as projects from '../services/projectService.js';
+import { projectToMarkdown } from '../../shared/project.js';
 import { planToMarkdown } from '../../shared/plan.js';
 import { describeTrend } from '../../shared/seasonality.js';
 
@@ -183,6 +185,57 @@ export function createMcpServer() {
     description: 'Informe completo del estudio en Markdown: resumen ejecutivo, plan de acción, oportunidades, intención y temas, briefs, auditorías y metodología. Para el PDF, usa la CLI: seo report <estudio> --format pdf.',
     inputSchema: { study: STUDY }
   }, tool(async ({ study }) => text(await studies.exportMarkdown(await studies.resolveFilename(study)))));
+
+  // ---------- Proyectos: un sitio con varios targets ----------
+  const PROJECT = z.string().default('latest').describe('Identificador del proyecto (8 caracteres) o «latest» para el más reciente');
+
+  server.registerTool('list_projects', {
+    title: 'Listar proyectos',
+    description: 'Lista los proyectos. Un proyecto es un sitio con varios targets (públicos o líneas de negocio: servicios distintos, categorías de una tienda…), cada uno con sus estudios de keywords.',
+    inputSchema: {}
+  }, tool(async () => json(await projects.listProjects())));
+
+  server.registerTool('create_project', {
+    title: 'Crear proyecto',
+    description: 'Crea un proyecto vacío para un sitio que atiende a varios públicos. Después añade un target por público con add_target.',
+    inputSchema: {
+      name: z.string().describe('Nombre del proyecto'),
+      site: z.string().optional().describe('Sitio (ejemplo.com, o localhost:3000 si está en desarrollo)'),
+      client: z.string().optional(), author: z.string().optional(), notes: z.string().optional()
+    }
+  }, tool(async (args) => json(await projects.createProject(args))));
+
+  server.registerTool('add_target', {
+    title: 'Añadir un target al proyecto',
+    description: 'Añade un público o línea de negocio al proyecto. Con keywords (2 a 6, las que usaría ESE público para buscar; unos 5 s por keyword) crea su estudio; con studies enlaza estudios existentes. Un target = una intención = una página de aterrizaje. Devuelve la vista del proyecto actualizada.',
+    inputSchema: {
+      project: PROJECT,
+      name: z.string().describe('Nombre del target: el público o el servicio («Automatización para pymes», «Zapatillas trail»)'),
+      audience: z.string().optional().describe('A quién va dirigido y qué problema tiene'),
+      page: z.string().optional().describe('Ruta de su página de aterrizaje si ya existe (/servicios/automatizacion)'),
+      keywords: z.array(z.string()).max(25).optional().describe('Keywords con las que crear el estudio del target'),
+      studies: z.array(z.string()).optional().describe('Nombres de archivo de estudios existentes que enlazar'),
+      country: z.string().length(2).optional(), language: z.string().length(2).optional()
+    }
+  }, tool(async ({ project, ...input }) => json((await projects.addTarget(await projects.resolveProject(project), input)).view)));
+
+  server.registerTool('project_overview', {
+    title: 'Vista del proyecto',
+    description: 'Combina los targets del proyecto: prioridad de cada uno (demanda 40 %, facilidad 40 %, valor comercial 20 %), página de aterrizaje detectada o ausente, keywords repetidas entre targets (riesgo de canibalización) con el target al que asignarlas, páginas reclamadas por varios targets, calendario conjunto, conclusiones y plan de acción. format=markdown devuelve el informe del proyecto.',
+    inputSchema: { project: PROJECT, format: z.enum(['json', 'markdown']).default('json') }
+  }, tool(async ({ project, format }) => {
+    const data = await projects.getProject(await projects.resolveProject(project));
+    return format === 'markdown' ? text(projectToMarkdown(data.project, data.view)) : json({ project: { id: data.project.id, name: data.project.name, site: data.project.site, siteScore: data.project.siteAudit?.score ?? null }, ...data.view });
+  }));
+
+  server.registerTool('project_site_audit', {
+    title: 'Auditar el sitio del proyecto',
+    description: 'Audita el sitio del proyecto por su sitemap (vale localhost y red interna) y guarda sus URLs: a partir de ahí project_overview sabe qué página corresponde a cada target, cuáles faltan y cuáles se comparten. Repetir tras cada cambio de estructura.',
+    inputSchema: { project: PROJECT, pages: z.number().int().min(1).max(100).default(40) }
+  }, tool(async ({ project, pages }) => {
+    const data = await projects.runProjectSiteAudit(await projects.resolveProject(project), { allowLocal: true, pages });
+    return json({ siteAudit: data.project.siteAudit, findings: data.view.findings, targets: data.view.targets.map((target) => ({ name: target.name, page: target.page, coverage: target.coverage, gaps: target.gaps })) });
+  }));
 
   server.registerTool('update_study', {
     title: 'Actualizar la ficha del estudio',
